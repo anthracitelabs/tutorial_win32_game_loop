@@ -3,22 +3,16 @@
 #include <stdio.h>
 
 
-typedef int32_t i32;
-typedef int64_t int64;
-typedef uint64_t u64;
-typedef float f32;
-typedef i32 bool32;
+uint64_t globalPerfCounterFrequency;
 
-u64 globalPerfCounterFrequency;
-
-inline float Win32GetSecondsElapsed(u64 start, u64 End)
+inline float Win32GetSecondsElapsed(uint64_t start, uint64_t End)
 {
-	f32 result = 0;
-	result = (f32)(End - start) / (f32)globalPerfCounterFrequency;
+	float result = 0;
+	result = (float)(End - start) / (float)globalPerfCounterFrequency;
 	return result;
 }
 
-inline u64 Win32GetPerfCounter()
+inline uint64_t Win32GetPerfCounter()
 {
 	LARGE_INTEGER result;
 	QueryPerformanceCounter(&result);
@@ -27,21 +21,21 @@ inline u64 Win32GetPerfCounter()
 
 void main()
 {
-	f32 targetSecondsPerFrame = 1.0f / 30.0f;
+	float targetSecondsPerFrame = 1.0f / 30.0f;
 
 	LARGE_INTEGER counterPerSecond;
 	QueryPerformanceFrequency(&counterPerSecond);
 	globalPerfCounterFrequency = counterPerSecond.QuadPart;
 
-	u64 lastCounter = Win32GetPerfCounter();
+	uint64_t lastCounter = Win32GetPerfCounter();
 
 	int my_clock_hours = 0;
 	int my_clock_minutes = 0;
 	int my_clock_seconds = 0;
 	int my_frame_counter = -1;
-	f32 MSPerFrame = 0.0f;
+	float MSPerFrame = 0.0f;
 
-	bool32 sleepIsGranular = (timeBeginPeriod(1) == TIMERR_NOERROR);
+	bool sleepIsGranular = (timeBeginPeriod(1) == TIMERR_NOERROR);
 
 	while(true)
 	{
@@ -65,7 +59,6 @@ void main()
 					if(my_clock_hours == 60)
 					{
 						my_clock_hours = 0;
-
 					}
 				}
 			}
@@ -73,45 +66,34 @@ void main()
 		}
 
 		// draw
-		printf("\r %02d:%02d:%02d", my_clock_hours, my_clock_minutes, my_clock_seconds);
-		//if(MSPerFrame > 33.35)
-			//printf("target: %f, mspf: %f\n", targetSecondsPerFrame, MSPerFrame);
+		printf("\r %02d:%02d:%02d\t%f ms per frame", my_clock_hours, my_clock_minutes, my_clock_seconds, MSPerFrame);
 
 		// Lock the frame rate
-		f32 secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
+		float secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
 		if(secondsElapsed < targetSecondsPerFrame) {
 			if(sleepIsGranular) {
 				DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - secondsElapsed));
-				if(sleepMS > 5) {
-					Sleep(sleepMS - 4);
+				if(sleepMS > 5.0) 
+				{
+					Sleep(sleepMS - 4.0);
 				}
 			}
-
-			while(secondsElapsed < targetSecondsPerFrame) {
+			
+			// spin lock for remaining time
+			while(secondsElapsed < targetSecondsPerFrame) 
+			{
 				secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
 			}
-		} else 
+		} 
+		else 
 		{
 			// We missed a frame
 		}
 
-		u64 endCounter = Win32GetPerfCounter();
+		uint64_t endCounter = Win32GetPerfCounter();
 
-		//swap new_input & old_input
-
-
-		int64 CounterElapsed = endCounter - lastCounter;
-		MSPerFrame = 1000.0f * (f32)CounterElapsed / (f32)counterPerSecond.QuadPart;
-
-#if 0
-		f32 MSPerFrame = 1000.0f * (f32)CounterElapsed / (f32)counterPerSecond.QuadPart;
-		f32 FPS = (f32)counterPerSecond.QuadPart / (f32)CounterElapsed;
-		f32 MCPF = (f32)CycleElapsed / (1000.0f * 1000.0f);
-
-		char OutputBuffer[256];
-		sprintf_s(OutputBuffer, sizeof(OutputBuffer), "ms/f: %.2f,  fps: %.2f,  mc/f: %.2f\n", MSPerFrame, FPS, MCPF);
-		OutputDebugStringA(OutputBuffer);
-#endif
+		int64_t CounterElapsed = endCounter - lastCounter;
+		MSPerFrame = 1000.0f * (float)CounterElapsed / (float)counterPerSecond.QuadPart;
 
 		lastCounter = endCounter;
 	}
