@@ -27,8 +27,7 @@ inline u64 Win32GetPerfCounter()
 
 void main()
 {
-	bool32 sleepIsGranular = 0;//timeBeginPeriod(1) == TIMERR_NOERROR;
-	f32 targetSecondsPerFrame = 1.0f / 60.0f;
+	f32 targetSecondsPerFrame = 1.0f / 30.0f;
 
 	LARGE_INTEGER counterPerSecond;
 	QueryPerformanceFrequency(&counterPerSecond);
@@ -40,6 +39,9 @@ void main()
 	int my_clock_minutes = 0;
 	int my_clock_seconds = 0;
 	int my_frame_counter = -1;
+	f32 MSPerFrame = 0.0f;
+
+	bool32 sleepIsGranular = (timeBeginPeriod(1) == TIMERR_NOERROR);
 
 	while(true)
 	{
@@ -47,7 +49,7 @@ void main()
 		
 		// update
 		my_frame_counter++;
-		if(my_frame_counter == 60)
+		if(my_frame_counter == 30)
 		{
 			my_clock_seconds++;
 			if(my_clock_seconds == 60)
@@ -72,26 +74,25 @@ void main()
 
 		// draw
 		printf("\r %02d:%02d:%02d", my_clock_hours, my_clock_minutes, my_clock_seconds);
+		//if(MSPerFrame > 33.35)
+			//printf("target: %f, mspf: %f\n", targetSecondsPerFrame, MSPerFrame);
 
 		// Lock the frame rate
-		f32 secondsElapsed
-			= Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
+		f32 secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
 		if(secondsElapsed < targetSecondsPerFrame) {
 			if(sleepIsGranular) {
-				DWORD sleepMS
-					= (DWORD)(1000 * (targetSecondsPerFrame - secondsElapsed));
-				if(sleepMS > 0) {
-					Sleep(sleepMS);
+				DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - secondsElapsed));
+				if(sleepMS > 5) {
+					Sleep(sleepMS - 4);
 				}
 			}
 
 			while(secondsElapsed < targetSecondsPerFrame) {
-				secondsElapsed
-					= Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
+				secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
 			}
-		} else {
+		} else 
+		{
 			// We missed a frame
-			// TODO: logging
 		}
 
 		u64 endCounter = Win32GetPerfCounter();
@@ -100,6 +101,7 @@ void main()
 
 
 		int64 CounterElapsed = endCounter - lastCounter;
+		MSPerFrame = 1000.0f * (f32)CounterElapsed / (f32)counterPerSecond.QuadPart;
 
 #if 0
 		f32 MSPerFrame = 1000.0f * (f32)CounterElapsed / (f32)counterPerSecond.QuadPart;
@@ -113,4 +115,5 @@ void main()
 
 		lastCounter = endCounter;
 	}
+	timeEndPeriod(1);
 }
