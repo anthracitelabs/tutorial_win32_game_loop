@@ -1,101 +1,96 @@
-#include <windows.h>
-#include <stdint.h>
 #include <stdio.h>
+#include <chrono>
 
+struct State {
+	float a;
+	float v;
+	float x, y;
+	float frames;
+};
 
-uint64_t globalPerfCounterFrequency;
-
-inline float Win32GetSecondsElapsed(uint64_t start, uint64_t End)
-{
-	float result = 0;
-	result = (float)(End - start) / (float)globalPerfCounterFrequency;
-	return result;
+// Calculates forces/accelerations acting on the state
+// For example: gravity, wind resistance, player input, or springs
+float calculate_acceleration(const State& state, float t) {
+    const float gravity = -9.81f;
+    const float drag_coefficient = 0.1f;
+    
+    // Total acceleration = gravity minus air resistance proportional to velocity
+    return gravity - (drag_coefficient * state.v);
 }
 
-inline uint64_t Win32GetPerfCounter()
+void integrate(State& state, float t, float dt)
 {
-	LARGE_INTEGER result;
-	QueryPerformanceCounter(&result);
-	return result.QuadPart;
+	// 1. Calculate acceleration for the current state
+    float acceleration = calculate_acceleration(state, t);
+    
+	state.a = acceleration;
+	
+    // 2. Update velocity first (Semi-Implicit step)
+    state.v += acceleration * dt;
+    
+    // 3. Update position using the *new* velocity
+	state.y += state.v * dt;
 }
 
-void main()
-{
-	float targetSecondsPerFrame = 1.0f / 30.0f;
+void render(const State& state)
+{   
+    // 5. Erase the old character before moving to the next frame
+    printf("\racceleration = %.4f velocity = %.4f x = %.4f y = %.4f  avg frames in sec = %.4f", state.a, state.v, state.x, state.y, state.frames);
+}
 
-	LARGE_INTEGER counterPerSecond;
-	QueryPerformanceFrequency(&counterPerSecond);
-	globalPerfCounterFrequency = counterPerSecond.QuadPart;
-
-	uint64_t lastCounter = Win32GetPerfCounter();
-
-	int my_clock_hours = 0;
-	int my_clock_minutes = 0;
-	int my_clock_seconds = 0;
-	int my_frame_counter = -1;
-	float MSPerFrame = 0.0f;
-
-	bool sleepIsGranular = (timeBeginPeriod(1) == TIMERR_NOERROR);
-
-	while(true)
-	{
-		// input
+int main() {
+	
+	bool quit = false;
+	float renderedFrames = 0;
+	
+	float t = 0.0;
+	float dt = 0.1;
 		
-		// update
-		my_frame_counter++;
-		if(my_frame_counter == 30)
+	std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+	float accumulator = 0.0;
+	
+	State previousState = {0};
+	State currentState = {0};
+	
+	float framesRenderedInSecond = 0;
+	
+	while(!quit)
+	{
+		std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
+		std::chrono::duration<float> frameTime = newTime - currentTime;
+		
+		float elapsedTime = frameTime.count();
+		
+		if(elapsedTime > 0.25f)
+			elapsedTime = 0.25f;
+		
+		currentTime = newTime;
+		
+		accumulator += elapsedTime;
+		
+		while(accumulator >= dt)
 		{
-			my_clock_seconds++;
-			if(my_clock_seconds == 60)
-			{
-				my_clock_seconds = 0;
-				
-				my_clock_minutes++;
-				if(my_clock_minutes == 60)
-				{
-					my_clock_minutes = 0;
-
-					my_clock_hours++;
-					if(my_clock_hours == 60)
-					{
-						my_clock_hours = 0;
-					}
-				}
-			}
-			my_frame_counter = 0;
+			previousState = currentState;
+			integrate(currentState, t, dt);
+			t += dt;
+			accumulator -= dt;
 		}
-
-		// draw
-		printf("\r %02d:%02d:%02d\t%f ms per frame", my_clock_hours, my_clock_minutes, my_clock_seconds, MSPerFrame);
-
-		// Lock the frame rate
-		float secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
-		if(secondsElapsed < targetSecondsPerFrame) {
-			if(sleepIsGranular) {
-				DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - secondsElapsed));
-				if(sleepMS > 5.0) 
-				{
-					Sleep(sleepMS - 4.0);
-				}
-			}
-			
-			// spin lock for remaining time
-			while(secondsElapsed < targetSecondsPerFrame) 
-			{
-				secondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetPerfCounter());
-			}
-		} 
-		else 
-		{
-			// We missed a frame
-		}
-
-		uint64_t endCounter = Win32GetPerfCounter();
-
-		int64_t CounterElapsed = endCounter - lastCounter;
-		MSPerFrame = 1000.0f * (float)CounterElapsed / (float)counterPerSecond.QuadPart;
-
-		lastCounter = endCounter;
+		
+		const float alpha = accumulator / dt;
+		
+		
+		State state = {
+						currentState.a,
+						currentState.v,
+						currentState.x * alpha + previousState.x * (1.0f - alpha), 
+						currentState.y * alpha + previousState.y * (1.0f - alpha),
+						framesRenderedInSecond
+					};
+		
+		render(state);
+		renderedFrames++;
+		framesRenderedInSecond = (1.0f / (t / renderedFrames));
 	}
-	timeEndPeriod(1);
+	
+    return 0;
 }
