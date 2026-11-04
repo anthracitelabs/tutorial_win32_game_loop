@@ -5,7 +5,6 @@ struct State {
 	float a;
 	float v;
 	float x, y;
-	float frames;
 };
 
 // Calculates forces/accelerations acting on the state
@@ -35,13 +34,18 @@ void integrate(State& state, float t, float dt)
 void render(const State& state)
 {   
     // 5. Erase the old character before moving to the next frame
-    printf("\racceleration = %.4f velocity = %.4f x = %.4f y = %.4f  avg frames in sec = %.4f", state.a, state.v, state.x, state.y, state.frames);
+    printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
 }
 
 int main() {
+	// Metrics tracking
+	int totalTicks = 0;         // Complete deterministic step counter
+	int totalFrames = 0;        // Rendering frame counter
+
+	int fpsCounter = 0;         // Resets every second
+	int tpsCounter = 0;         // Resets every second (Ticks Per Second)
 	
 	bool quit = false;
-	float renderedFrames = 0;
 	
 	float t = 0.0;
 	float dt = 0.1;
@@ -52,8 +56,8 @@ int main() {
 	State previousState = {0};
 	State currentState = {0};
 	
-	float framesRenderedInSecond = 0;
-	
+	std::chrono::steady_clock::time_point lastFpsUpdateTime;  // Last time metrics were displayed
+
 	while(!quit)
 	{
 		std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
@@ -74,6 +78,9 @@ int main() {
 			integrate(currentState, t, dt);
 			t += dt;
 			accumulator -= dt;
+			
+			totalTicks++;
+			tpsCounter++;
 		}
 		
 		const float alpha = accumulator / dt;
@@ -84,12 +91,24 @@ int main() {
 						currentState.v,
 						currentState.x * alpha + previousState.x * (1.0f - alpha), 
 						currentState.y * alpha + previousState.y * (1.0f - alpha),
-						framesRenderedInSecond
 					};
 		
 		render(state);
-		renderedFrames++;
-		framesRenderedInSecond = (1.0f / (t / renderedFrames));
+		
+		totalFrames++;
+		fpsCounter++;
+
+		// 4. PERFORMANCE RUNTIME TRACKING
+		// Output metrics every 1 second
+		std::chrono::duration<float> outputTime = currentTime - lastFpsUpdateTime;
+		if (outputTime.count() >= 1.0f) {
+			printf(" -> FPS (Render Rate): %d | TPS (Simulation Rate): %d | Total Ticks: %d\r", fpsCounter, tpsCounter, totalTicks);
+			
+			// Reset per-second counters
+			fpsCounter = 0;
+			tpsCounter = 0;
+			lastFpsUpdateTime = currentTime;
+		}
 	}
 	
     return 0;
