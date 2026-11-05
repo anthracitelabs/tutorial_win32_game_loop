@@ -3,7 +3,14 @@
 #include <stdio.h>
 #include <chrono>
 
+#include "game_platform.h"
+#include "game.cpp"
+
+
 static bool Running;
+static int red;
+static int green;
+static int blue;
 
 // just to be able to printf on the console
 void InitializeConsole() {
@@ -55,7 +62,7 @@ void render(const State& state)
     printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
 }
 
-void Win32ProcessPendingMessages()
+void Win32ProcessPendingMessages(game_input* Input)
 {
     MSG Message;
     while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
@@ -78,10 +85,10 @@ void Win32ProcessPendingMessages()
 
                     if(IsDown != WasDown)
                     {
-                        if (VKCode == VK_UP) {}
-                        else if (VKCode == VK_DOWN) {}
-                        else if (VKCode == VK_LEFT) {}
-                        else if (VKCode == VK_RIGHT) {}
+                        if (VKCode == VK_UP) { Input->Up = !(Input->Up); }
+                        else if (VKCode == VK_DOWN) { Input->Down = !(Input->Down); }
+                        else if (VKCode == VK_LEFT) { Input->Left = !(Input->Left); }
+                        else if (VKCode == VK_RIGHT) { Input->Right = !(Input->Right); }
                         else if (VKCode == VK_ESCAPE) { Running = false; }
 
                         bool AltKeyWasDown = ((Message.lParam & (1 << 29)) != 0);
@@ -148,9 +155,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		
 		std::chrono::steady_clock::time_point lastFpsUpdateTime;  // Last time metrics were displayed
 
+		game_input Input = {};
+		game_memory Memory = {};
+	
 		while(Running)
 		{
-			Win32ProcessPendingMessages(); // input() function
+			Win32ProcessPendingMessages(&Input); // input() function
 			
 			std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
 			std::chrono::duration<float> frameTime = newTime - currentTime;
@@ -168,6 +178,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			{
 				previousState = currentState;
 				integrate(currentState, t, dt);
+
+				GameFrame(&Memory, &Input);
+				red = Memory.red;
+				green = Memory.green;
+				blue = Memory.blue;
+
 				t += dt;
 				accumulator -= dt;
 				
@@ -184,7 +200,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 							currentState.x * alpha + previousState.x * (1.0f - alpha), 
 							currentState.y * alpha + previousState.y * (1.0f - alpha),
 						};
-			
+			InvalidateRect(Window, NULL, FALSE);
 			render(state);
 			
 			totalFrames++;
@@ -234,7 +250,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT uMsg, WPARAM wParam, LPARAM lParam
 				GetClientRect(Window, &rect);
 
 				// Create a solid brush (e.g., white or black)
-				HBRUSH hBrush = CreateSolidBrush(RGB(0, 100, 0)); // White canvas
+				HBRUSH hBrush = CreateSolidBrush(RGB(red, green, blue)); // White canvas
 
 				// Fill the canvas area
 				FillRect(hdc, &rect, hBrush);
