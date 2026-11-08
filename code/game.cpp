@@ -1,27 +1,36 @@
+#include "game.h"
+
 void GameFrame(game_memory* Memory, game_input* Input)
 {
-	if(Input->Up)
+	for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
 	{
-		Memory->red = 255;
-		Memory->green = 0;
-		Memory->blue = 0;
+		game_controller_input *Controller = &Input->Controllers[ControllerIndex];
+		if(Controller->IsAnalog)
+		{
+			// Analog movement tuning
+			// GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX)
+			// GameState->ToneHz = 256 + (int)(128.0f*Controller->StickAverageY)
+		}
+		else
+		{
+			// Digital movement tuning
+			if(Controller->MoveLeft.EndedDown)
+			{
+				// GameState->BlueOffset -= 1;
+			}
+
+			if(Controller->MoveRight.EndedDown)
+			{
+				// GameState->BlueOffset += 1;
+			}
+		}
+
+		if(Controller->Button_A.EndedDown)
+		{
+			// GameState->GreenOffset += 1;
+		}
 	}
-	else if(Input->Down)
-	{
-		Memory->red = 0;
-		Memory->green = 255;
-		Memory->blue = 0;
-	}
-	else if(Input->Left)
-	{
-		Memory->red = 0;
-		Memory->green = 0;
-		Memory->blue = 255;
-	}
-	else if(Input->Right)
-	{
-		Memory->red = 255;
-		Memory->green = 255;
-		Memory->blue = 255;
-	}
+
+	// write_sound_output_buffer();
+	// write_render_buffer();
 }
