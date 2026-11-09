@@ -122,3 +122,6 @@ void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_
 }
 ~~~~
 
+## Here is a good article on input handling with this algorithm
+
+(Handling input using independent rendering)[https://jakubtomsu.github.io/posts/input_in_fixed_timestep/]
