@@ -1,7 +1,9 @@
 #include <windows.h>
-
-#include <stdio.h>
 #include <chrono>
+
+#ifdef PRINTF_ENABLED
+#include <stdio.h>
+#endif
 
 #include "game_platform.h"
 #include "game.cpp"
@@ -14,6 +16,43 @@ static int red;
 static int green;
 static int blue;
 
+// -------------------------------------------------------------------------
+// GAMEPAD INITIALIZATION --------------------------------------------------
+// -------------------------------------------------------------------------
+#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
+typedef X_INPUT_GET_STATE(x_input_get_state); // (or x_input_get_state)
+
+X_INPUT_GET_STATE(XInputGetStateStub) {
+    return(ERROR_DEVICE_NOT_CONNECTED);
+}
+static x_input_get_state *XInputGetState_ = XInputGetStateStub;
+#define XInputGetState XInputGetState_
+
+static void Win32LoadXInput() {
+    // Try newer XInput 1.4 (Win 8/10/11), fallback to 1.3 (DirectX SDK redistributable), then 9.1.0
+    HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");
+    if(!XInputLibrary) {
+        XInputLibrary = LoadLibraryA("xinput1_3.dll");
+    }
+    if(!XInputLibrary) {
+        XInputLibrary = LoadLibraryA("xinput9_1_0.dll");
+    }
+
+    if(XInputLibrary) {
+        // Clear the stubs and wire up the real functions from the DLL
+        XInputGetState_ = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
+        
+        // Defensive check: If GetProcAddress failed for some reason, restore stubs
+        if(!XInputGetState_) { XInputGetState_ = XInputGetStateStub; }
+    } else {
+        // Diagnostic or logging could go here; stubs remain active safely
+    }
+}
+// -------------------------------------------------------------------------
+// GAMEPAD INITIALIZATION --------------------------------------------------
+// -------------------------------------------------------------------------
+
+#ifdef PRINTF_ENABLED
 // just to be able to printf on the console
 void InitializeConsole() {
     // 1. Allocate a new console for the calling process
@@ -26,6 +65,7 @@ void InitializeConsole() {
     // 3. Clear the error state of the stream
     clearerr(stdout);
 }
+#endif
 
 struct State {
 	float a;
@@ -60,7 +100,7 @@ void integrate(State& state, float t, float dt)
 void render(const State& state)
 {   
     // 5. Erase the old character before moving to the next frame
-    printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
+    //printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
 }
 
 
@@ -187,7 +227,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	
-	InitializeConsole(); // just for printf to work
+	#ifdef PRINTF_ENABLED
+	InitializeConsole();
+	#endif
 	
 	// 1. Register the Window Class
     WNDCLASS wc = {0};
@@ -232,8 +274,46 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		
 		std::chrono::steady_clock::time_point lastFpsUpdateTime;  // Last time metrics were displayed
 
-		game_memory Memory = {};
-	
+		
+		// ------------------------------------
+		// GAME MEMORY ALLOCATION SECTION
+		// ------------------------------------
+		game_memory GameMemory = {};
+		GameMemory.PermanentStorageSize = 64000;
+		GameMemory.TransientStorageSize = 32000;
+
+		// Calculate total size needed
+		uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
+
+		// Request a specific base address in Debug mode for consistent pointer layouts
+		void *BaseAddress = 0;
+
+		// Allocate the absolute giant contiguous block of memory
+		void *EntireStorageBlock = VirtualAlloc(BaseAddress, TotalSize, 
+                                        MEM_RESERVE|MEM_COMMIT, 
+                                        PAGE_READWRITE);
+
+		if(EntireStorageBlock)
+		{
+			// Sub-divide the single giant block into our memory struct pointers
+			GameMemory.PermanentStorage = EntireStorageBlock;
+			GameMemory.TransientStorage = ((uint8_t *)GameMemory.PermanentStorage + 
+										   GameMemory.PermanentStorageSize);
+			
+			// Note: VirtualAlloc automatically zeros out memory upon initial commit!
+		}
+		else
+		{
+			// Handle memory allocation failure
+		}
+		// ------------------------------------
+		// GAME MEMORY ALLOCATION SECTION
+		// ------------------------------------
+		
+		
+		// initialize Gamepad 
+		Win32LoadXInput();
+		
 		game_input Input[2] = {};
 		game_input* NewInput = &Input[0];
 		game_input* OldInput = &Input[1];
@@ -370,11 +450,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				previousState = currentState;
 				integrate(currentState, t, dt);
 
-				GameFrame(&Memory, Input);
-				red = Memory.red;
-				green = Memory.green;
-				blue = Memory.blue;
-
+				GameFrame(&GameMemory, Input);
+				
 				t += dt;
 				accumulator -= dt;
 
@@ -401,8 +478,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			// Output metrics every 1 second
 			std::chrono::duration<float> outputTime = currentTime - lastFpsUpdateTime;
 			if (outputTime.count() >= 1.0f) {
+				#ifdef PRINTF_ENABLED
 				printf(" -> FPS (Render Rate): %d | TPS (Simulation Rate): %d | Total Ticks: %d\r", fpsCounter, tpsCounter, totalTicks);
-
+				#endif
+				
 				// Reset per-second counters
 				fpsCounter = 0;
 				tpsCounter = 0;
