@@ -43,4 +43,39 @@ struct game_input	// ALL CONTROLLERS STORED IN A STRUCT
 	game_controller_input Controllers[5]; // 4 game controllers and a keyboard
 };
 
+struct game_state
+{
+    // Memory sub-management
+    memory_arena WorldArena;
+
+    // Camera and spatial tracking
+    //world_position CameraP;
+
+    // Entity management
+    uint32 EntityCount;
+    //sim_entity Entities[256]; // Array of active entities (Player, Enemies, Projectiles)
+
+    // Specific entity indices for quick access
+    uint32 CameraFollowingEntityIndex;
+
+    // Asset management pointers
+    //loaded_bitmap Background;
+    //loaded_bitmap HeroBitmap[4]; // For directional animations
+    
+    // Any other global game settings or flags
+    float TimeSinceStart;
+};
+
+struct hero_entity
+{
+	float x, y;
+	int Health;
+};
+
+struct enemy_entity
+{
+	float x, y;
+	int Health;
+};
+
 #endif
