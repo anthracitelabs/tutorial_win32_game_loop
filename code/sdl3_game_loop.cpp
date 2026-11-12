@@ -7,7 +7,7 @@
 #include "game_platform.h"
 #include "opengl_loader.h"
 #include "game.cpp"
-
+#include "opengl_test.cpp"
 
 static bool GlobalRunning;
 
@@ -135,60 +135,60 @@ void SDLProcessPendingMessages(game_controller_input *KeyboardController)
 int main(int argc, char* argv[]) 
 {
 	// 1. Initialize SDL3
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
-    }
+	if (!SDL_Init(SDL_INIT_VIDEO)) {
+		printf("SDL_Init failed: %s\n", SDL_GetError());
+		return 1;
+	}
 
-    // 2. Configure OpenGL 3.3 Core Profile BEFORE creating the window
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	// 2. Configure OpenGL 3.3 Core Profile BEFORE creating the window
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    // 3. Create window with SDL_WINDOW_OPENGL
-    SDL_Window* Window = SDL_CreateWindow(
-        "SDL3 + OpenGL",
-        800, 600,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-    );
-	
-    if (!Window) {
+	// 3. Create window with SDL_WINDOW_OPENGL
+	SDL_Window* Window = SDL_CreateWindow(
+			"SDL3 + OpenGL",
+			800, 600,
+			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+			);
+
+	if (!Window) {
 		printf("Window creation failed: %s\n", SDL_GetError());
-        SDL_Quit();
-        return 1;
-    }
+		SDL_Quit();
+		return 1;
+	}
 
-    // 4. Create and activate the OpenGL context
-    SDL_GLContext gl_context = SDL_GL_CreateContext(Window);
-    if (!gl_context) {
+	// 4. Create and activate the OpenGL context
+	SDL_GLContext gl_context = SDL_GL_CreateContext(Window);
+	if (!gl_context) {
 		printf("Context creation failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(Window);
-        SDL_Quit();
-        return 1;
-    }
-    SDL_GL_MakeCurrent(Window, gl_context);
+		SDL_DestroyWindow(Window);
+		SDL_Quit();
+		return 1;
+	}
+	SDL_GL_MakeCurrent(Window, gl_context);
 
 	load_gl_functions();
 
-    // Enable VSync (optional)
-    SDL_GL_SetSwapInterval(1);
-    
+	// Enable VSync (optional)
+	SDL_GL_SetSwapInterval(1);
+
 	// Metrics tracking
 	int totalTicks = 0;         // Complete deterministic step counter
 	int totalFrames = 0;        // Rendering frame counter
 	int fpsCounter = 0;         // Resets every second
 	int tpsCounter = 0;         // Resets every second (Ticks Per Second)
-	
+
 	GlobalRunning = true;
-	
+
 	float t = 0.0;
 	float dt = 0.1;
-		
+
 	std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 	float accumulator = 0.0;
-	
+
 	State previousState = {0};
 	State currentState = {0};
 
@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
 		// Sub-divide the single giant block into our memory struct pointers
 		GameMemory.PermanentStorage = EntireStorageBlock;
 		GameMemory.TransientStorage = ((uint8_t *)GameMemory.PermanentStorage + 
-									   GameMemory.PermanentStorageSize);
+				GameMemory.PermanentStorageSize);
 	}
 	else
 	{
@@ -222,20 +222,21 @@ int main(int argc, char* argv[])
 	// ------------------------------------
 	// GAME MEMORY ALLOCATION SECTION
 	// ------------------------------------
-	
-	
+
+	InitRenderingTest();
+
 	// initialize Gamepad 
-	
+
 	game_input Input[2] = {};
 	game_input* NewInput = &Input[0];
 	game_input* OldInput = &Input[1];
 
 	std::chrono::steady_clock::time_point lastFpsUpdateTime = std::chrono::steady_clock::now();  // Last time metrics were displayed
-    
-    while (GlobalRunning) 
+
+	while (GlobalRunning) 
 	{
 		std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
-		
+
 		// ------------------------------------
 		// KEYBOARD INPUT PROCESSING SECTION
 		// ------------------------------------
@@ -254,7 +255,7 @@ int main(int argc, char* argv[])
 		// ------------------------------------
 		// KEYBOARD INPUT PROCESSING SECTION
 		// ------------------------------------
-        
+
 		std::chrono::duration<float> frameTime = newTime - currentTime;
 
 		float elapsedTime = frameTime.count();
@@ -272,7 +273,7 @@ int main(int argc, char* argv[])
 			integrate(currentState, t, dt);
 
 			GameFrame(&GameMemory, Input);
-			
+
 			t += dt;
 			accumulator -= dt;
 
@@ -289,16 +290,18 @@ int main(int argc, char* argv[])
 			currentState.x * alpha + previousState.x * (1.0f - alpha), 
 			currentState.y * alpha + previousState.y * (1.0f - alpha),
 		};
-		
-		render(state);
-		
-        // OpenGL Rendering
-        glClearColor(0.5f, 0.15f, 0.2f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Swap front and back buffers
-        SDL_GL_SwapWindow(Window);
-		
+		render(state);
+
+		// OpenGL Rendering
+		glClearColor(0.5f, 0.15f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		RenderTestFrame(state, alpha);
+
+		// Swap front and back buffers
+		SDL_GL_SwapWindow(Window);
+
 		totalFrames++;
 		fpsCounter++;
 
@@ -306,24 +309,24 @@ int main(int argc, char* argv[])
 		game_input *Temp = NewInput;
 		NewInput = OldInput;
 		OldInput = Temp;
-		
+
 		// 4. PERFORMANCE RUNTIME TRACKING
 		// Output metrics every 1 second
 		std::chrono::steady_clock::time_point frameEndTime = std::chrono::steady_clock::now();
 		std::chrono::duration<float> outputTime = frameEndTime - lastFpsUpdateTime;
 		if (outputTime.count() >= 1.0f) {
 			printf(" -> FPS (Render Rate): %d | TPS (Simulation Rate): %d | Total Ticks: %d\r", fpsCounter, tpsCounter, totalTicks);
-			
+
 			// Reset per-second counters
 			fpsCounter = 0;
 			tpsCounter = 0;
 			lastFpsUpdateTime = frameEndTime;
 		}
-    }
+	}
 
-    // 7. Cleanup
-    SDL_GL_DestroyContext(gl_context);
-    SDL_DestroyWindow(Window);
-    SDL_Quit();
-    return 0;
+	// 7. Cleanup
+	SDL_GL_DestroyContext(gl_context);
+	SDL_DestroyWindow(Window);
+	SDL_Quit();
+	return 0;
 }
