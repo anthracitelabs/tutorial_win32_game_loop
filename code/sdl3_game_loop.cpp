@@ -48,6 +48,89 @@ void render(const State& state)
     //printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
 }
 
+static void SDLProcessKeyboardMessage(game_button_state *NewState, bool IsDown)
+{
+    if(NewState->EndedDown != IsDown)
+    {
+        NewState->EndedDown = IsDown;
+        ++NewState->HalfTransitionCount;
+    }
+}
+
+void SDLProcessPendingMessages(game_controller_input *KeyboardController)
+{
+    SDL_Event Event;
+	while (SDL_PollEvent(&Event)) 
+	{
+		switch(Event.type)
+		{
+			case SDL_EVENT_KEY_DOWN:
+			case SDL_EVENT_KEY_UP:
+			{
+				if(!Event.key.repeat)
+				{
+					bool IsDown = (Event.type == SDL_EVENT_KEY_DOWN);
+					SDL_Scancode KeyCode = Event.key.scancode;
+					
+					if(KeyCode == SDL_SCANCODE_W)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->MoveUp, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_A)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->MoveLeft, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_S)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->MoveDown, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_D)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_Q)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->LeftShoulder, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_E)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->RightShoulder, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_UP)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->Button_A, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_DOWN)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->Button_B, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_LEFT)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->Button_X, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_RIGHT)
+					{
+						SDLProcessKeyboardMessage(&KeyboardController->Button_Y, IsDown);
+					}
+					if(KeyCode == SDL_SCANCODE_ESCAPE)
+					{
+						GlobalRunning = false;
+					}
+				}
+			} break;
+			
+			case SDL_EVENT_WINDOW_RESIZED:
+			{
+				glViewport(0, 0, Event.window.data1, Event.window.data2);
+			} break;
+			
+			case SDL_EVENT_QUIT:
+			{
+				GlobalRunning = false;
+			} break;
+		}
+	}
+}
 
 int main(int argc, char* argv[]) 
 {
@@ -108,10 +191,7 @@ int main(int argc, char* argv[])
 	
 	State previousState = {0};
 	State currentState = {0};
-	
-	std::chrono::steady_clock::time_point lastFpsUpdateTime;  // Last time metrics were displayed
 
-	
 	// ------------------------------------
 	// GAME MEMORY ALLOCATION SECTION
 	// ------------------------------------
@@ -149,20 +229,32 @@ int main(int argc, char* argv[])
 	game_input Input[2] = {};
 	game_input* NewInput = &Input[0];
 	game_input* OldInput = &Input[1];
-	
-    SDL_Event event;
+
+	std::chrono::steady_clock::time_point lastFpsUpdateTime = std::chrono::steady_clock::now();  // Last time metrics were displayed
+    
     while (GlobalRunning) 
 	{
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
-                GlobalRunning = false;
-            }
-            if (event.type == SDL_EVENT_WINDOW_RESIZED) {
-                glViewport(0, 0, event.window.data1, event.window.data2);
-            }
-        }
-
 		std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
+		
+		// ------------------------------------
+		// KEYBOARD INPUT PROCESSING SECTION
+		// ------------------------------------
+		game_controller_input *OldKeyboardController = &OldInput->Controllers[0];
+		game_controller_input *NewKeyboardController = &NewInput->Controllers[0];
+		game_controller_input ZeroController = {};
+		*NewKeyboardController = ZeroController;
+		NewKeyboardController->IsConnected = true;
+
+		// carry only EndedDown from OldKeyboardController, reset rest
+		for(int ButtonIndex = 0; ButtonIndex < ArrayCount(NewKeyboardController->Buttons); ++ButtonIndex)
+		{
+			NewKeyboardController->Buttons[ButtonIndex].EndedDown = OldKeyboardController->Buttons[ButtonIndex].EndedDown;
+		}
+		SDLProcessPendingMessages(NewKeyboardController);
+		// ------------------------------------
+		// KEYBOARD INPUT PROCESSING SECTION
+		// ------------------------------------
+        
 		std::chrono::duration<float> frameTime = newTime - currentTime;
 
 		float elapsedTime = frameTime.count();
@@ -217,14 +309,15 @@ int main(int argc, char* argv[])
 		
 		// 4. PERFORMANCE RUNTIME TRACKING
 		// Output metrics every 1 second
-		std::chrono::duration<float> outputTime = currentTime - lastFpsUpdateTime;
+		std::chrono::steady_clock::time_point frameEndTime = std::chrono::steady_clock::now();
+		std::chrono::duration<float> outputTime = frameEndTime - lastFpsUpdateTime;
 		if (outputTime.count() >= 1.0f) {
 			printf(" -> FPS (Render Rate): %d | TPS (Simulation Rate): %d | Total Ticks: %d\r", fpsCounter, tpsCounter, totalTicks);
 			
 			// Reset per-second counters
 			fpsCounter = 0;
 			tpsCounter = 0;
-			lastFpsUpdateTime = currentTime;
+			lastFpsUpdateTime = frameEndTime;
 		}
     }
 
