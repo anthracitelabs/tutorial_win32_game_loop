@@ -1,28 +1,7 @@
 #include "game_math.h"
 
-// 1. Hardcoded Shaders (GLSL 330 Core)
-const char* VertexShaderSource = 
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-	"// Values that stay constant for the whole mesh.\n"
-	"uniform mat4 MVP;\n"
-	"\n"
-    "void main() {\n"
-	"// Output position of the vertex, in clip space: MVP * position\n"
-    "   gl_Position = MVP * vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\n\0";
+#include <stddef.h>
 
-const char* FragmentShaderSource = 
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main() {\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n" // Orange color
-    "}\n\0";
-
-// 2. Setup Code (Run Once After Context Initialization)
-GLuint ShaderProgram = 0;
-GLuint VAO = 0;
-GLuint VBO = 0;
 
 m4x4 myMVP;
 // try giving MVP matrix to our shader program
@@ -30,44 +9,42 @@ m4x4 myMVP;
 // Only during the initialisation
 GLuint MatrixID;
 
-void InitRenderingTest() 
-{
-	// matrix math test ****************************
-	/*	screen resolution : 800x600
-	 *	World position : (2.0, 1.0, -5.0, 1.0) homogenous 4D coordinates
-	 *	w = 1.0 means this is a position not a direction
-	 */
-	v4 Pworld = {10.0f, 10.0f, 10.0f, 1.0f};
-	m4x4 T  = { 1.0f, 0.0f, 0.0f, 0.0f,		//| 0 - 3 | First column (typically X-axis basis vector)
-		0.0f, 1.0f, 0.0f, 0.0f,		//| 4 – 7	| Second column (typically Y-axis basis vector)
-		0.0f, 0.0f, 1.0f, 0.0f,		//| 8 – 11 | Third column (typically Z-axis basis vector)
-		10.0f, 0.0f, 0.0f, 1.0f};	//| 12 – 15 | Fourth column (Translation components X, Y, Z)
 
-	// translate vector 10 units
-	v4 Pnew = Multiply(T, Pworld);
-	/* and we get a (20,10,10,1) homogeneous vector! Remember, the 1 means that it is a position, not a direction. So our transformation didn’t change the fact that we were dealing with a position, which is good.
-	 */
+ typedef struct {
+    GLuint shader_program;
+    GLuint vao;
+    GLuint vbo;
+} GLRenderer;
 
-	// Let’s now see what happens to a vector that represents a direction towards the -z axis: (0,0,-1,0)
-	v4 Pdir = {0.0f, 0.0f, -1.0f, 0.0f};
-	v4 Pdir_translated = Multiply(T, Pdir);
-	// result is our original (0,0,-1,0) direction, which is great because, as I said ealier, moving a direction does not make sense.
+typedef struct {
+    float x, y;
+    float r, g, b, a;
+} Vertex;
 
+static const char* vs_src =
+    "#version 330 core\n"
+    "layout (location = 0) in vec2 aPos;\n"
+    "layout (location = 1) in vec4 aColor;\n"
+	"uniform mat4 MVP;\n"
+    "out vec4 vColor;\n"
+    "void main() {\n"
+    "    vColor = aColor;\n"
+    "    gl_Position = MVP * vec4(aPos, 0.0, 1.0);\n"
+    "}\n";
 
-	//GLM example to reproduce-----
-	// Projection matrix: 45° Field of View, 4:3 ratio, display range: 0.1 unit <-> 100 units
-	//Projection = glm::perspective(glm::radians(60.0f), (float) 640.0f / (float)480.0f, 0.1f, 100.0f);
+static const char* fs_src =
+    "#version 330 core\n"
+    "in vec4 vColor;\n"
+    "out vec4 FragColor;\n"
+    "void main() {\n"
+    "    FragColor = vColor;\n"
+    "}\n";
 
-	// Or, for an ortho camera:
-	//glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
+GLRenderer r;
 
-	v3 vertex1 = {0.0f, 0.0f, 0.0f};	// left
-	v3 vertex2 = {16.0f, 0.0f, 0.0f};	// right
-	v3 vertex3 = {8.0f, 24.0f, 0.0f};	// top
-	float tri_height = vertex3.y - vertex1.y;
-	float tri_base = vertex2.x - vertex1.x;
-	//float d =  SquareRoot(tri_height * tri_height - (tri_height / 2.0) * (tri_height / 2.0));
-
+void gl_renderer_init() {
+	
+	// set up matrix
 	v3 camera = {8.0f, 12.0f, 30.0f};
 
 	// Camera matrix
@@ -104,104 +81,107 @@ void InitRenderingTest()
 	// Our ModelViewProjection: multiplication of our 3 matrices
 	//mvp = P * V * M; // Remember, matrix multiplication is the other way around
 	myMVP = P * V * M;
+	
 	/***************************/
+	
+    // 1. Compile Shaders
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &vs_src, NULL);
+    glCompileShader(vs);
 
-	float Vertices[] = {
-		vertex1.x, vertex1.y, vertex1.z,  // Left  
-		vertex2.x, vertex2.y, vertex2.z,  // Right  
-		vertex3.x, vertex3.y, vertex3.z,  // Top  
-	};
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &fs_src, NULL);
+    glCompileShader(fs);
 
-	// Dynamically load missing state setup functions if not done already
-	glGenVertexArrays_type* glGenVertexArrays = (glGenVertexArrays_type*)wglGetProcAddress("glGenVertexArrays");
-	glBindVertexArray_type* glBindVertexArray = (glBindVertexArray_type*)wglGetProcAddress("glBindVertexArray");
-	glVertexAttribPointer_type* glVertexAttribPointer = (glVertexAttribPointer_type*)wglGetProcAddress("glVertexAttribPointer");
-	glEnableVertexAttribArray_type* glEnableVertexAttribArray = (glEnableVertexAttribArray_type*)wglGetProcAddress("glEnableVertexAttribArray");
+    r.shader_program = glCreateProgram();
+    glAttachShader(r.shader_program, vs);
+    glAttachShader(r.shader_program, fs);
+    glLinkProgram(r.shader_program);
 
-	// Compile Vertex Shader
-	GLuint VertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(VertexShader, 1, &VertexShaderSource, NULL);
-	glCompileShader(VertexShader);
-
-	// Compile Fragment Shader
-	GLuint FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(FragmentShader, 1, &FragmentShaderSource, NULL);
-	glCompileShader(FragmentShader);
-
-	// Link Shaders into Program
-	ShaderProgram = glCreateProgram();
-	glAttachShader(ShaderProgram, VertexShader);
-	glAttachShader(ShaderProgram, FragmentShader);
-	glLinkProgram(ShaderProgram);
-
-	// Clean up individual shaders as they are now linked
-	// (In a real engine like Handmade Hero, you'd check compilation/link flags here)
-	// glDeleteShader(VertexShader);
-	// glDeleteShader(FragmentShader);
-
+    glDeleteShader(vs);
+    glDeleteShader(fs);
 
 	// try giving MVP matrix to our shader program
 	// Get a handle for our "MVP" uniform
 	// Only during the initialisation
-	MatrixID = glGetUniformLocation(ShaderProgram, "MVP");
+	MatrixID = glGetUniformLocation(r.shader_program, "MVP");
+	
+    // 2. Setup Dynamic VAO & VBO for 6 vertices (1 quad)
+    glGenVertexArrays(1, &r.vao);
+    glGenBuffers(1, &r.vbo);
 
-	// Generate and Bind Vertex Array Object (VAO) and Vertex Buffer Object (VBO)
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
+    glBindVertexArray(r.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r.vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 6, NULL, GL_DYNAMIC_DRAW);
 
-	glBindVertexArray(VAO);
+	// offsetof is defined as a macro int stddef header: #define offsetof(type, member) ((size_t)&(((type *)0)->member))
+	
+    // Position attribute (location = 0)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));
+    glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+    // Color attribute (location = 1)
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, r));
+    glEnableVertexAttribArray(1);
 
-	// Map vertex attributes to location 0 in the vertex shader
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// Unbind buffer and array to prevent accidental modifications
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+    glBindVertexArray(0);
 }
 
-// 3. Execution Code (Run Every Frame Inside the Main Loop)
-void RenderTestFrame(game_state* state, float alpha) {
+void gl_renderer_execute(const CommandBuffer* cb) {
+    glUseProgram(r.shader_program);
+    glBindVertexArray(r.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r.vbo);
+
+    const uint8_t* ptr = cb->buffer;
+    const uint8_t* end = cb->buffer + cb->offset;
+
+    while (ptr < end) {
+        uintptr_t raw_addr = (uintptr_t)ptr;
+        ptr = (const uint8_t*)((raw_addr + 7) & ~((uintptr_t)7));
+        if (ptr >= end) break;
+
+        const CmdHeader* header = (const CmdHeader*)ptr;
+        const void* payload = (const void*)(header + 1);
+
+        switch (header->type) {
+            case CMD_CLEAR: {
+                const CmdClear* cmd = (const CmdClear*)payload;
+                glClearColor(cmd->r, cmd->g, cmd->b, cmd->a);
+                glClear(GL_COLOR_BUFFER_BIT);
+                break;
+            }
+            case CMD_DRAW_RECTANGLE: {
+                const CmdDrawRectangle* cmd = (const CmdDrawRectangle*)payload;
+                float x0 = cmd->x;
+                float y0 = cmd->y;
+                float x1 = cmd->x + cmd->w;
+                float y1 = cmd->y + cmd->h;
+				
+				// Send our transformation to the currently bound shader, in the "MVP" uniform
+				// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+				glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &myMVP.Elements[0]);
 	
-	float x = Lerp(state->PlayerOldPosition.x * state->PixelsPerMeter, alpha, state->PlayerPosition.x * state->PixelsPerMeter);
-	float y = Lerp(state->PlayerOldPosition.y * state->PixelsPerMeter, alpha, state->PlayerPosition.y * state->PixelsPerMeter);
-	
-	v3 camera = {state->CameraPosition.x, state->CameraPosition.y, 30.0f};
+                // Build 2 triangles (6 vertices)
+                Vertex verts[6] = {
+                    { x0, y0, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x1, y0, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x1, y1, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x0, y0, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x1, y1, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x0, y1, cmd->r, cmd->g, cmd->b, cmd->a }
+                };
 
-	// Camera matrix
-	/*glm::mat4 View = glm::lookAt(
-			glm::vec3(camera.x , camera.y, camera.z), // Camera in World Space, arranged for 60 degrees triangle vertices touching sides
-			glm::vec3(camera.x , camera.y, 0.0f), // and looks at the origin
-			glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-			);
+                // Upload vertices and draw
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+                break;
+            }
+        }
 
-	// Model matrix: an identity matrix (model will be at the origin)
-	glm::mat4 Model = glm::mat4(1.0f);
-	// Our ModelViewProjection: multiplication of our 3 matrices
-	mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
-*/
-	// Clear screen to a dark grey color
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+        ptr += header->size;
+    }
 
-	// Use our compiled shader program and bind geometry
-	glUseProgram(ShaderProgram);
-
-	// Send our transformation to the currently bound shader, in the "MVP" uniform
-	// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &myMVP.Elements[0]);
-	//glUniformMatrix4fv(MatrixID, 1, GL_FALSE, glm::value_ptr(mvp));
-
-	// Use the function loaded dynamically in step 2
-	glBindVertexArray_type* glBindVertexArray = (glBindVertexArray_type*)wglGetProcAddress("glBindVertexArray");
-	glBindVertexArray(VAO);
-
-	// Draw the 3 vertices as a triangle
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-
-	// Swap buffers to display the rendered image (Standard Win32 API call)
-	//SwapBuffers(WindowDC);
+    glBindVertexArray(0);
 }
+
+
