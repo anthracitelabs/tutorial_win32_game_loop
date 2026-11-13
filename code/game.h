@@ -78,4 +78,8 @@ struct enemy_entity
 	int Health;
 };
 
+hero_entity *Hero;
+uint32_t MaxEnemies = 256;
+enemy_entity *Enemies;
+
 #endif
