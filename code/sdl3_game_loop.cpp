@@ -18,6 +18,20 @@ struct State {
 	float x, y;
 };
 
+void cmd_buffer_init(CommandBuffer* cb, size_t capacity_bytes) {
+    cb->buffer = (uint8_t*)malloc(capacity_bytes);
+    //assert(cb->buffer != NULL && "Failed to allocate command buffer");
+    cb->capacity = capacity_bytes;
+    cb->offset = 0;
+}
+
+void cmd_buffer_destroy(CommandBuffer* cb) {
+    free(cb->buffer);
+    cb->buffer = NULL;
+    cb->capacity = 0;
+    cb->offset = 0;
+}
+
 // Calculates forces/accelerations acting on the state
 // For example: gravity, wind resistance, player input, or springs
 float calculate_acceleration(const State& state, float t) {
@@ -219,11 +233,15 @@ int main(int argc, char* argv[])
 	{
 		// Handle memory allocation failure
 	}
+	
+	CommandBuffer cb;
+	cmd_buffer_init(&cb, 10240);
 	// ------------------------------------
 	// GAME MEMORY ALLOCATION SECTION
 	// ------------------------------------
 
-	InitRenderingTest();
+	//InitRenderingTest();
+	gl_renderer_init();
 
 	// initialize Gamepad 
 
@@ -272,7 +290,7 @@ int main(int argc, char* argv[])
 			previousState = currentState;
 			integrate(currentState, t, dt);
 
-			GameFrame(&GameMemory, Input);
+			GameFrame(&cb, &GameMemory, Input);
 
 			t += dt;
 			accumulator -= dt;
@@ -291,14 +309,15 @@ int main(int argc, char* argv[])
 			currentState.y * alpha + previousState.y * (1.0f - alpha),
 		};
 
-		render(state);
+		//render(state);
 
 		// OpenGL Rendering
-		glClearColor(0.5f, 0.15f, 0.2f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glClearColor(0.5f, 0.15f, 0.2f, 1.0f);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		RenderTestFrame(state, alpha);
-
+		//RenderTestFrame(previousState.x, previousState.y, currentState.x, currentState.y, alpha);
+		gl_renderer_execute(&cb);
+		
 		// Swap front and back buffers
 		SDL_GL_SwapWindow(Window);
 
@@ -324,6 +343,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	cmd_buffer_destroy(&cb);
+	
 	// 7. Cleanup
 	SDL_GL_DestroyContext(gl_context);
 	SDL_DestroyWindow(Window);
