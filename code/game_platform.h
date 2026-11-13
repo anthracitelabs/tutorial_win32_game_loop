@@ -58,4 +58,56 @@ void *PushSize_(memory_arena *Arena, size_t Size)
     return(Result);
 }
 
+// may be a different header file?
+typedef enum {
+	CMD_CLEAR = 1,
+	CMD_DRAW_RECTANGLE
+} CmdType;
+
+typedef struct {
+    uint16_t type;
+    uint16_t size;
+} CmdHeader;
+
+typedef struct {
+    float r, g, b, a;
+} CmdClear;
+
+typedef struct {
+    float x, y, w, h;
+    float r, g, b, a;
+} CmdDrawRectangle;
+
+typedef struct {
+    uint8_t* buffer;
+    size_t capacity;
+    size_t offset;
+} CommandBuffer;
+
+void cmd_buffer_reset(CommandBuffer* cb) {
+    cb->offset = 0;
+}
+
+// Core allocation function: writes header and returns pointer to payload
+void* cmd_buffer_push_raw(CommandBuffer* cb, uint16_t type, size_t payload_size) {
+    // Align current offset to an 8-byte boundary
+    size_t aligned_offset = (cb->offset + 7) & ~((size_t)7);
+    size_t total_size = sizeof(CmdHeader) + payload_size;
+
+    //assert(aligned_offset + total_size <= cb->capacity && "CommandBuffer out of memory!");
+
+    CmdHeader* header = (CmdHeader*)(cb->buffer + aligned_offset);
+    header->type = type;
+    header->size = (uint16_t)total_size;
+
+    cb->offset = aligned_offset + total_size;
+
+    // Return memory address immediately following the header
+    return (void*)(header + 1);
+}
+
+// Type-safe helper macro for pushing structs
+#define CMD_PUSH(cb, type_enum, struct_type) \
+    ((struct_type*)cmd_buffer_push_raw((cb), (type_enum), sizeof(struct_type)))
+
 #endif
