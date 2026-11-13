@@ -1,11 +1,46 @@
 #include "game.h"
 
-void RenderGame(game_state *GameState)
-{
-	// this should push render commands into a buffer, which will then be interpreted into draw calls by platform specific layer
+	
+void InitGame(game_memory* Memory)
+{	
+	if(Memory->IsInitialized)
+	{
+		game_state *GameState = (game_state *)Memory->PermanentStorage;
+		
+		// For a single object
+		Hero = PushStruct(&GameState->WorldArena, hero_entity);
+		Hero->Health = 100;
+		Hero->x = 0.0f;
+		Hero->y = 0.0f;
+		
+		// for multiple objects
+		Enemies = PushArray(&GameState->WorldArena, MaxEnemies, enemy_entity);
+	}
 }
 
-void GameFrame(game_memory* Memory, game_input* Input)
+void build_render_frame(CommandBuffer* cb) {
+    cmd_buffer_reset(cb);
+
+	// 1. Producer: Record commands
+    cmd_buffer_reset(cb);
+
+    CmdClear* clear = CMD_PUSH(cb, CMD_CLEAR, CmdClear);
+    *clear = { 0.1f, 0.1f, 0.15f, 1.0f };
+
+    // Draw a red rectangle in the center
+    CmdDrawRectangle* rect1 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
+    *rect1 = { -0.25f, -0.25f, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
+
+    // Draw a smaller green rectangle overlapping it
+    CmdDrawRectangle* rect2 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
+    *rect2 = { 3.0f, 0.0f, 3.4f, 3.4f, 0.2f, 1.0f, 0.3f, 1.0f };
+	
+	// Draw a smaller green rectangle overlapping it
+    CmdDrawRectangle* rect3 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
+    *rect3 = { 13.0f, 10.0f, 5.0f, 10.4f, 0.2f, 0.0f, 0.9f, 1.0f };
+}
+
+void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
 {
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
 
@@ -19,16 +54,6 @@ void GameFrame(game_memory* Memory, game_input* Input)
 		Memory->IsInitialized = true;
 	}
 	
-	// For a single object
-	hero_entity *Hero = PushStruct(&GameState->WorldArena, hero_entity);
-	Hero->Health = 100;
-	Hero->x = 0.0f;
-	Hero->y = 0.0f;
-	
-	// for multiple objects
-	uint32_t MaxEnemies = 256;
-	enemy_entity *Enemies = PushArray(&GameState->WorldArena, MaxEnemies, enemy_entity);
-
 	for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
 	{
 		game_controller_input *Controller = &Input->Controllers[ControllerIndex];
@@ -43,12 +68,22 @@ void GameFrame(game_memory* Memory, game_input* Input)
 			// Digital movement tuning
 			if(Controller->MoveLeft.EndedDown)
 			{
-				// GameState->BlueOffset -= 1;
+				Hero->x -= 1;
 			}
 
 			if(Controller->MoveRight.EndedDown)
 			{
-				// GameState->BlueOffset += 1;
+				Hero->x += 1;
+			}
+			
+			if(Controller->MoveLeft.EndedDown)
+			{
+				Hero->y -= 1;
+			}
+
+			if(Controller->MoveRight.EndedDown)
+			{
+				Hero->y += 1;
 			}
 		}
 
@@ -61,7 +96,8 @@ void GameFrame(game_memory* Memory, game_input* Input)
 	// write_sound_output_buffer();
 	
 	// write_render_buffer();
-	RenderGame(GameState);
+	//RenderGame(GameState);
+	build_render_frame(cb);
 }
 
 
