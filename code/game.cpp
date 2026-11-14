@@ -29,7 +29,7 @@ void build_render_frame(CommandBuffer* cb) {
 
     // Draw a red rectangle in the center
     CmdDrawRectangle* rect1 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
-    *rect1 = { -0.25f, -0.25f, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
+    *rect1 = { Hero->x, Hero->y, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
 
     // Draw a smaller green rectangle overlapping it
     CmdDrawRectangle* rect2 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
@@ -52,6 +52,7 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
 						(uint8_t *)Memory->PermanentStorage + sizeof(game_state));
 
 		Memory->IsInitialized = true;
+		InitGame(Memory);
 	}
 	
 	for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
@@ -76,14 +77,14 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
 				Hero->x += 1;
 			}
 			
-			if(Controller->MoveLeft.EndedDown)
-			{
-				Hero->y -= 1;
-			}
-
-			if(Controller->MoveRight.EndedDown)
+			if(Controller->MoveUp.EndedDown)
 			{
 				Hero->y += 1;
+			}
+
+			if(Controller->MoveDown.EndedDown)
+			{
+				Hero->y -= 1;
 			}
 		}
 
