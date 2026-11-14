@@ -173,7 +173,9 @@ int main(int argc, char* argv[])
 		SDL_Quit();
 		return 1;
 	}
-
+	
+	SDL_SetWindowFullscreen(Window, true);
+	
 	// 4. Create and activate the OpenGL context
 	SDL_GLContext gl_context = SDL_GL_CreateContext(Window);
 	if (!gl_context) {
