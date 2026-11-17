@@ -17,12 +17,19 @@ void InitGame(game_memory* Memory, float dt)
 		Hero->velocity.x = 10.0f;
 		Hero->velocity.y = 10.0f;
 		
+		Hero_prev = PushStruct(&GameState->WorldArena, hero_entity);
+		Hero_prev->Health = 100;
+		Hero_prev->pos.x = 0.0f;
+		Hero_prev->pos.y = 0.0f;
+		Hero_prev->velocity.x = 10.0f;
+		Hero_prev->velocity.y = 10.0f;
+
 		// for multiple objects
 		Enemies = PushArray(&GameState->WorldArena, MaxEnemies, enemy_entity);
 	}
 }
 
-void build_render_frame(CommandBuffer* cb) {
+void build_render_frame(CommandBuffer* cb, game_memory* Memory, float alpha) {
     cmd_buffer_reset(cb);
 
 	// 1. Producer: Record commands
@@ -31,10 +38,16 @@ void build_render_frame(CommandBuffer* cb) {
     CmdClear* clear = CMD_PUSH(cb, CMD_CLEAR, CmdClear);
     *clear = { 0.1f, 0.1f, 0.15f, 1.0f };
 
-    // Draw a red rectangle in the center
-    CmdDrawRectangle* rect1 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
-    *rect1 = { Hero->pos.x, Hero->pos.y, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
 
+	// interpolate Hero position
+	if(Memory->IsInitialized) {
+		float x = Hero->pos.x * alpha + Hero_prev->pos.x * (1.0f - alpha);
+		float y = Hero->pos.y * alpha + Hero_prev->pos.y * (1.0f - alpha);
+ 
+    		// Draw a red rectangle in the center
+    		CmdDrawRectangle* rect1 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
+    		*rect1 = { x, y, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
+	}
     // Draw a smaller green rectangle overlapping it
     CmdDrawRectangle* rect2 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
     *rect2 = { 3.0f, 0.0f, 3.4f, 3.4f, 0.2f, 1.0f, 0.3f, 1.0f };
@@ -105,6 +118,9 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input, float 
         	move_dir.x /= length;
         	move_dir.y /= length;
     	}
+
+	Hero_prev->pos.x = Hero->pos.x;
+	Hero_prev->pos.y = Hero->pos.y;
 	
 	Hero->pos.x += move_dir.x * Hero->velocity.x * GameState->dt;
 	Hero->pos.y += move_dir.y * Hero->velocity.y * GameState->dt;
@@ -113,7 +129,6 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input, float 
 	
 	// write_render_buffer();
 	//RenderGame(GameState);
-	build_render_frame(cb);
 }
 
 

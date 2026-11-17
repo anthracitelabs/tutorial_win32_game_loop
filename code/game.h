@@ -83,6 +83,7 @@ struct enemy_entity
 };
 
 hero_entity *Hero;
+hero_entity *Hero_prev;
 uint32_t MaxEnemies = 256;
 enemy_entity *Enemies;
 

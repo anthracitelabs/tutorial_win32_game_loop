@@ -310,7 +310,9 @@ int main(int argc, char* argv[])
 			currentState.x * alpha + previousState.x * (1.0f - alpha), 
 			currentState.y * alpha + previousState.y * (1.0f - alpha),
 		};
+		
 
+		build_render_frame(&cb, &GameMemory, alpha);
 		//render(state);
 
 		// OpenGL Rendering
