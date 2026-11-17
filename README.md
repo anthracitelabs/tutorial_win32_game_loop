@@ -280,5 +280,5 @@ Two common approaches are Countdown Timer Buffer and Ring Buffer (History array)
 
 * Countdown Timer Buffer : you store a small float timer on your player entity for each buffered action. Using a time duration (in seconds) rather than a raw frame count keeps the buffer window consistent regardless of frame rate. Best for standard single action buffering (jump buffering, attack queuing, coyote time)
 
-# Ring Buffer :If your game needs to detect sequences (such as double-taps, quarter-circle motions, or multi-button cancels), you can store the last N frames of game_controller_input in a fixed-size circular buffer. Best for Fighting games, complex multi-button combos, and deterministic replay systems.
+* Ring Buffer :If your game needs to detect sequences (such as double-taps, quarter-circle motions, or multi-button cancels), you can store the last N frames of game_controller_input in a fixed-size circular buffer. Best for Fighting games, complex multi-button combos, and deterministic replay systems.
 
