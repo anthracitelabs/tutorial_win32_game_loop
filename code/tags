@@ -1,0 +1,247 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ArrayCount	game_platform.h	17;"	d
+Base	game_platform.h	/^    uint8_t *Base;$/;"	m	struct:memory_arena
+Button_A	game.h	/^			game_button_state Button_A;$/;"	m	struct:game_controller_input::__anon1::__anon2
+Button_B	game.h	/^			game_button_state Button_B;$/;"	m	struct:game_controller_input::__anon1::__anon2
+Button_X	game.h	/^			game_button_state Button_X;$/;"	m	struct:game_controller_input::__anon1::__anon2
+Button_Y	game.h	/^			game_button_state Button_Y;$/;"	m	struct:game_controller_input::__anon1::__anon2
+Buttons	game.h	/^		game_button_state Buttons[10];$/;"	m	union:game_controller_input::__anon1
+CMD_CLEAR	game_platform.h	/^	CMD_CLEAR = 1,$/;"	e	enum:__anon3
+CMD_DRAW_RECTANGLE	game_platform.h	/^	CMD_DRAW_RECTANGLE$/;"	e	enum:__anon3
+CMD_PUSH	game_platform.h	110;"	d
+CameraFollowingEntityIndex	game.h	/^    uint32 CameraFollowingEntityIndex;$/;"	m	struct:game_state
+Clamp	game_math.h	/^static inline float Clamp(float Min, float Value, float Max)$/;"	f
+CmdClear	game_platform.h	/^} CmdClear;$/;"	t	typeref:struct:__anon5
+CmdDrawRectangle	game_platform.h	/^} CmdDrawRectangle;$/;"	t	typeref:struct:__anon6
+CmdHeader	game_platform.h	/^} CmdHeader;$/;"	t	typeref:struct:__anon4
+CmdType	game_platform.h	/^} CmdType;$/;"	t	typeref:enum:__anon3
+CommandBuffer	game_platform.h	/^} CommandBuffer;$/;"	t	typeref:struct:__anon7
+Controllers	game.h	/^	game_controller_input Controllers[5]; \/\/ 4 game controllers and a keyboard$/;"	m	struct:game_input
+DEG_TO_RAD	game_math.h	8;"	d
+DegreeToRadian	game_math.h	/^static inline float DegreeToRadian(float Angle)$/;"	f
+Elements	game_math.h	/^	float Elements[16];$/;"	m	struct:m4x4
+EndedDown	game.h	/^	bool EndedDown;$/;"	m	struct:game_button_state
+Enemies	game.h	/^enemy_entity *Enemies;$/;"	v
+EntityCount	game.h	/^    uint32 EntityCount;$/;"	m	struct:game_state
+GAME_H	game.h	2;"	d
+GAME_MATH_H	game_math.h	2;"	d
+GAME_PLATFORM_H	game_platform.h	2;"	d
+GLRenderer	opengl_test.cpp	/^} GLRenderer;$/;"	t	typeref:struct:__anon8	file:
+GL_FUNCTIONS_LIST	opengl_loader.h	5;"	d
+GameFrame	game.cpp	/^void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)$/;"	f
+GlobalRunning	sdl3_game_loop.cpp	/^static bool GlobalRunning;$/;"	v	file:
+GlobalRunning	win32_game_loop.cpp	/^static bool GlobalRunning;$/;"	v	file:
+HalfTransitionCount	game.h	/^	int32 HalfTransitionCount;$/;"	m	struct:game_button_state
+Health	game.h	/^	int Health;$/;"	m	struct:enemy_entity
+Health	game.h	/^	int Health;$/;"	m	struct:hero_entity
+Hero	game.h	/^hero_entity *Hero;$/;"	v
+Identity	game_math.h	/^inline m4x4 Identity()$/;"	f
+InitGame	game.cpp	/^void InitGame(game_memory* Memory)$/;"	f
+InitializeArena	game_platform.h	/^void InitializeArena(memory_arena *Arena, size_t Size, void *Base)$/;"	f
+InitializeConsole	win32_game_loop.cpp	/^void InitializeConsole() {$/;"	f
+Inner	game_math.h	/^inline float Inner(v2 a, v2 b)$/;"	f
+IsAnalog	game.h	/^	bool IsAnalog; $/;"	m	struct:game_controller_input
+IsConnected	game.h	/^	bool IsConnected;$/;"	m	struct:game_controller_input
+IsInitialized	game_platform.h	/^    bool IsInitialized;$/;"	m	struct:game_memory
+LeftShoulder	game.h	/^			game_button_state LeftShoulder;$/;"	m	struct:game_controller_input::__anon1::__anon2
+LengthSq	game_math.h	/^inline float LengthSq(v2 a)$/;"	f
+Lerp	game_math.h	/^static inline float Lerp(float A, float Time, float B)$/;"	f
+LookAt	game_math.h	/^inline m4x4 LookAt(v3 eye, v3 center, v3 up)$/;"	f
+MatrixID	opengl_test.cpp	/^GLuint MatrixID;$/;"	v
+MaxEnemies	game.h	/^uint32_t MaxEnemies = 256;$/;"	v
+MoveDown	game.h	/^			game_button_state MoveDown;$/;"	m	struct:game_controller_input::__anon1::__anon2
+MoveLeft	game.h	/^			game_button_state MoveLeft;$/;"	m	struct:game_controller_input::__anon1::__anon2
+MoveRight	game.h	/^			game_button_state MoveRight;$/;"	m	struct:game_controller_input::__anon1::__anon2
+MoveUp	game.h	/^			game_button_state MoveUp;$/;"	m	struct:game_controller_input::__anon1::__anon2
+Multiply	game_math.h	/^inline m4x4 Multiply(m4x4 A, m4x4 B)$/;"	f
+Multiply	game_math.h	/^inline v4 Multiply(m4x4 Matrix, v4 Vector)$/;"	f
+Normalize	game_math.h	/^inline v2 Normalize(v2 A)$/;"	f
+OPENGL_LOADER_H	opengl_loader.h	2;"	d
+PI_VAL	game_math.h	6;"	d
+PermanentStorage	game_platform.h	/^    void *PermanentStorage; \/\/ Must be cleared to zero at startup$/;"	m	struct:game_memory
+PermanentStorageSize	game_platform.h	/^    uint64 PermanentStorageSize;$/;"	m	struct:game_memory
+Perspective	game_math.h	/^inline m4x4 Perspective(float fovy_degrees, float aspect, float zNear, float zFar)$/;"	f
+PushArray	game_platform.h	31;"	d
+PushSize_	game_platform.h	/^void *PushSize_(memory_arena *Arena, size_t Size)$/;"	f
+PushStruct	game_platform.h	30;"	d
+RAD_TO_DEG	game_math.h	7;"	d
+RadianToDegree	game_math.h	/^static inline float RadianToDegree(float Angle)$/;"	f
+RightShoulder	game.h	/^			game_button_state RightShoulder;$/;"	m	struct:game_controller_input::__anon1::__anon2
+RoundReal32ToInt32	game_math.h	/^inline int32 RoundReal32ToInt32(float input)$/;"	f
+SDLProcessKeyboardMessage	sdl3_game_loop.cpp	/^static void SDLProcessKeyboardMessage(game_button_state *NewState, bool IsDown)$/;"	f	file:
+SDLProcessPendingMessages	sdl3_game_loop.cpp	/^void SDLProcessPendingMessages(game_controller_input *KeyboardController)$/;"	f
+Size	game_platform.h	/^    size_t Size;$/;"	m	struct:memory_arena
+Square	game_math.h	/^inline float Square(float val)$/;"	f
+SquareRoot	game_math.h	/^inline float SquareRoot(float value)$/;"	f
+State	sdl3_game_loop.cpp	/^struct State {$/;"	s	file:
+State	win32_game_loop.cpp	/^struct State {$/;"	s	file:
+StickAverageX	game.h	/^	float StickAverageX;$/;"	m	struct:game_controller_input
+StickAverageY	game.h	/^	float StickAverageY;$/;"	m	struct:game_controller_input
+TimeSinceStart	game.h	/^    float TimeSinceStart;$/;"	m	struct:game_state
+TransientStorage	game_platform.h	/^    void *TransientStorage; \/\/ Must be cleared to zero at startup$/;"	m	struct:game_memory
+TransientStorageSize	game_platform.h	/^    uint64 TransientStorageSize;$/;"	m	struct:game_memory
+Used	game_platform.h	/^    size_t Used;$/;"	m	struct:memory_arena
+Vertex	opengl_test.cpp	/^} Vertex;$/;"	t	typeref:struct:__anon9	file:
+Win32LoadXInput	win32_game_loop.cpp	/^static void Win32LoadXInput() {$/;"	f	file:
+Win32ProcessKeyboardMessage	win32_game_loop.cpp	/^void Win32ProcessKeyboardMessage(game_button_state *NewState, bool IsDown)$/;"	f
+Win32ProcessPendingMessages	win32_game_loop.cpp	/^void Win32ProcessPendingMessages(game_controller_input *KeyboardController)$/;"	f
+Win32ProcessXInputDigitalButton	win32_game_loop.cpp	/^void Win32ProcessXInputDigitalButton(DWORD XInputButtonState, $/;"	f
+Win32ProcessXInputStickValue	win32_game_loop.cpp	/^float Win32ProcessXInputStickValue(SHORT Value, SHORT DeadZoneThreshold)$/;"	f
+WinMain	win32_game_loop.cpp	/^int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {$/;"	f
+WindowProc	win32_game_loop.cpp	/^LRESULT CALLBACK WindowProc(HWND Window, UINT uMsg, WPARAM wParam, LPARAM lParam) {$/;"	f
+WorldArena	game.h	/^    memory_arena WorldArena;$/;"	m	struct:game_state
+X	opengl_loader.h	42;"	d
+X	opengl_loader.h	44;"	d
+X	opengl_loader.h	83;"	d
+X	opengl_loader.h	90;"	d
+XInputGetState	win32_game_loop.cpp	29;"	d	file:
+XInputGetState_	win32_game_loop.cpp	/^static x_input_get_state *XInputGetState_ = XInputGetStateStub;$/;"	v	file:
+X_INPUT_GET_STATE	win32_game_loop.cpp	/^X_INPUT_GET_STATE(XInputGetStateStub) {$/;"	f
+X_INPUT_GET_STATE	win32_game_loop.cpp	22;"	d	file:
+a	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon5
+a	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon6
+a	opengl_test.cpp	/^    float r, g, b, a;$/;"	m	struct:__anon9	file:
+a	sdl3_game_loop.cpp	/^	float a;$/;"	m	struct:State	file:
+a	win32_game_loop.cpp	/^	float a;$/;"	m	struct:State	file:
+b	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon5
+b	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon6
+b	opengl_test.cpp	/^    float r, g, b, a;$/;"	m	struct:__anon9	file:
+b32	game_platform.h	/^typedef int32                b32; \/\/ Used explicitly for boolean values (padded to 32 bits for speed)$/;"	t
+blue	win32_game_loop.cpp	/^static int blue;$/;"	v	file:
+buffer	game_platform.h	/^    uint8_t* buffer;$/;"	m	struct:__anon7
+build_render_frame	game.cpp	/^void build_render_frame(CommandBuffer* cb) {$/;"	f
+calculate_acceleration	sdl3_game_loop.cpp	/^float calculate_acceleration(const State& state, float t) {$/;"	f
+calculate_acceleration	win32_game_loop.cpp	/^float calculate_acceleration(const State& state, float t) {$/;"	f
+capacity	game_platform.h	/^    size_t capacity;$/;"	m	struct:__anon7
+cmd_buffer_destroy	sdl3_game_loop.cpp	/^void cmd_buffer_destroy(CommandBuffer* cb) {$/;"	f
+cmd_buffer_init	sdl3_game_loop.cpp	/^void cmd_buffer_init(CommandBuffer* cb, size_t capacity_bytes) {$/;"	f
+cmd_buffer_push_raw	game_platform.h	/^void* cmd_buffer_push_raw(CommandBuffer* cb, uint16_t type, size_t payload_size) {$/;"	f
+cmd_buffer_reset	game_platform.h	/^void cmd_buffer_reset(CommandBuffer* cb) {$/;"	f
+cross	game_math.h	/^inline v3 cross(v3 a, v3 b)$/;"	f
+dot	game_math.h	/^inline float dot(v3 a, v3 b)$/;"	f
+enemy_entity	game.h	/^struct enemy_entity$/;"	s
+fs_src	opengl_test.cpp	/^static const char* fs_src =$/;"	v	file:
+g	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon5
+g	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon6
+g	opengl_test.cpp	/^    float r, g, b, a;$/;"	m	struct:__anon9	file:
+game_button_state	game.h	/^struct game_button_state	\/\/ CONTROLLER BUTTON STATES$/;"	s
+game_controller_input	game.h	/^struct game_controller_input	\/\/ SINGLE GAME CONTROLLER$/;"	s
+game_input	game.h	/^struct game_input	\/\/ ALL CONTROLLERS STORED IN A STRUCT$/;"	s
+game_memory	game_platform.h	/^struct game_memory$/;"	s
+game_state	game.h	/^struct game_state$/;"	s
+glActiveTexture	opengl_loader.h	76;"	d
+glAttachShader	opengl_loader.h	54;"	d
+glBindBuffer	opengl_loader.h	64;"	d
+glBindVertexArray	opengl_loader.h	61;"	d
+glBufferData	opengl_loader.h	65;"	d
+glBufferSubData	opengl_loader.h	66;"	d
+glCompileShader	opengl_loader.h	49;"	d
+glCreateProgram	opengl_loader.h	53;"	d
+glCreateShader	opengl_loader.h	47;"	d
+glDeleteBuffers	opengl_loader.h	67;"	d
+glDeleteProgram	opengl_loader.h	59;"	d
+glDeleteShader	opengl_loader.h	52;"	d
+glDeleteVertexArrays	opengl_loader.h	62;"	d
+glEnableVertexAttribArray	opengl_loader.h	69;"	d
+glGenBuffers	opengl_loader.h	63;"	d
+glGenVertexArrays	opengl_loader.h	60;"	d
+glGenerateMipmap	opengl_loader.h	77;"	d
+glGetProgramInfoLog	opengl_loader.h	57;"	d
+glGetProgramiv	opengl_loader.h	56;"	d
+glGetShaderInfoLog	opengl_loader.h	51;"	d
+glGetShaderiv	opengl_loader.h	50;"	d
+glGetUniformLocation	opengl_loader.h	70;"	d
+glLinkProgram	opengl_loader.h	55;"	d
+glShaderSource	opengl_loader.h	48;"	d
+glUniform1f	opengl_loader.h	72;"	d
+glUniform1i	opengl_loader.h	71;"	d
+glUniform3f	opengl_loader.h	73;"	d
+glUniform4f	opengl_loader.h	74;"	d
+glUniformMatrix4fv	opengl_loader.h	75;"	d
+glUseProgram	opengl_loader.h	58;"	d
+glVertexAttribPointer	opengl_loader.h	68;"	d
+gl_renderer_execute	opengl_test.cpp	/^void gl_renderer_execute(const CommandBuffer* cb) {$/;"	f
+gl_renderer_init	opengl_test.cpp	/^void gl_renderer_init() {$/;"	f
+green	win32_game_loop.cpp	/^static int green;$/;"	v	file:
+h	game_platform.h	/^    float x, y, w, h;$/;"	m	struct:__anon6
+hero_entity	game.h	/^struct hero_entity$/;"	s
+int16	game_platform.h	/^typedef signed short       int16;$/;"	t
+int32	game_platform.h	/^typedef signed int         int32;$/;"	t
+int64	game_platform.h	/^typedef signed long long   int64;$/;"	t
+int8	game_platform.h	/^typedef signed char        int8;$/;"	t
+integrate	sdl3_game_loop.cpp	/^void integrate(State& state, float t, float dt)$/;"	f
+integrate	win32_game_loop.cpp	/^void integrate(State& state, float t, float dt)$/;"	f
+load_gl_functions	opengl_loader.h	/^bool load_gl_functions(void) {$/;"	f
+m4x4	game_math.h	/^struct m4x4$/;"	s
+main	sdl3_game_loop.cpp	/^int main(int argc, char* argv[]) $/;"	f
+memory_arena	game_platform.h	/^struct memory_arena$/;"	s
+myMVP	opengl_test.cpp	/^m4x4 myMVP;$/;"	v
+normalize	game_math.h	/^inline v3 normalize(v3 v)$/;"	f
+offset	game_platform.h	/^    size_t offset;$/;"	m	struct:__anon7
+operator *	game_math.h	/^inline m4x4 operator*(m4x4 a, m4x4 b)$/;"	f
+operator *	game_math.h	/^inline v2 operator*(float a, v2 b)$/;"	f
+operator *	game_math.h	/^inline v2 operator*(v2 b, float a)$/;"	f
+operator *	game_math.h	/^inline v3 operator*(float a, v3 b)$/;"	f
+operator *	game_math.h	/^inline v3 operator*(v3 b, float a)$/;"	f
+operator *=	game_math.h	/^inline v2 operator*=(v2 &a, float b)$/;"	f
+operator *=	game_math.h	/^inline v3 operator*=(v3 &a, float b)$/;"	f
+operator +	game_math.h	/^inline v2 operator+(v2 a, v2 b)$/;"	f
+operator +	game_math.h	/^inline v3 operator+(v3 a, v3 b)$/;"	f
+operator +=	game_math.h	/^inline v2 operator+=(v2 &a, v2 b)$/;"	f
+operator +=	game_math.h	/^inline v3 operator+=(v3 &a, v3 b)$/;"	f
+operator -	game_math.h	/^inline v2 operator-(v2 a)$/;"	f
+operator -	game_math.h	/^inline v2 operator-(v2 a, v2 b)$/;"	f
+operator -	game_math.h	/^inline v3 operator-(v3 a)$/;"	f
+operator -	game_math.h	/^inline v3 operator-(v3 a, v3 b)$/;"	f
+operator -=	game_math.h	/^inline v2 operator-=(v2 &a, v2 b)$/;"	f
+operator -=	game_math.h	/^inline v3 operator-=(v3 &a, v3 b)$/;"	f
+r	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon5
+r	game_platform.h	/^    float r, g, b, a;$/;"	m	struct:__anon6
+r	opengl_test.cpp	/^    float r, g, b, a;$/;"	m	struct:__anon9	file:
+r	opengl_test.cpp	/^GLRenderer r;$/;"	v
+red	win32_game_loop.cpp	/^static int red;$/;"	v	file:
+render	sdl3_game_loop.cpp	/^void render(const State& state)$/;"	f
+render	win32_game_loop.cpp	/^void render(const State& state)$/;"	f
+shader_program	opengl_test.cpp	/^    GLuint shader_program;$/;"	m	struct:__anon8	file:
+size	game_platform.h	/^    uint16_t size;$/;"	m	struct:__anon4
+type	game_platform.h	/^    uint16_t type;$/;"	m	struct:__anon4
+uint16	game_platform.h	/^typedef unsigned short     uint16;$/;"	t
+uint32	game_platform.h	/^typedef unsigned int       uint32;$/;"	t
+uint64	game_platform.h	/^typedef unsigned long long uint64;$/;"	t
+uint8	game_platform.h	/^typedef unsigned char      uint8;$/;"	t
+v	sdl3_game_loop.cpp	/^	float v;$/;"	m	struct:State	file:
+v	win32_game_loop.cpp	/^	float v;$/;"	m	struct:State	file:
+v2	game_math.h	/^struct v2$/;"	s
+v3	game_math.h	/^struct v3$/;"	s
+v4	game_math.h	/^struct v4$/;"	s
+vao	opengl_test.cpp	/^    GLuint vao;$/;"	m	struct:__anon8	file:
+vbo	opengl_test.cpp	/^    GLuint vbo;$/;"	m	struct:__anon8	file:
+vs_src	opengl_test.cpp	/^static const char* vs_src =$/;"	v	file:
+w	game_math.h	/^	float w;$/;"	m	struct:v4
+w	game_platform.h	/^    float x, y, w, h;$/;"	m	struct:__anon6
+x	game.h	/^	float x, y;$/;"	m	struct:enemy_entity
+x	game.h	/^	float x, y;$/;"	m	struct:hero_entity
+x	game_math.h	/^	float x;$/;"	m	struct:v2
+x	game_math.h	/^	float x;$/;"	m	struct:v3
+x	game_math.h	/^	float x;$/;"	m	struct:v4
+x	game_platform.h	/^    float x, y, w, h;$/;"	m	struct:__anon6
+x	opengl_test.cpp	/^    float x, y;$/;"	m	struct:__anon9	file:
+x	sdl3_game_loop.cpp	/^	float x, y;$/;"	m	struct:State	file:
+x	win32_game_loop.cpp	/^	float x, y;$/;"	m	struct:State	file:
+x_input_get_state	win32_game_loop.cpp	/^typedef X_INPUT_GET_STATE(x_input_get_state); \/\/ (or x_input_get_state)$/;"	t	file:
+y	game.h	/^	float x, y;$/;"	m	struct:enemy_entity
+y	game.h	/^	float x, y;$/;"	m	struct:hero_entity
+y	game_math.h	/^	float y;$/;"	m	struct:v2
+y	game_math.h	/^	float y;$/;"	m	struct:v3
+y	game_math.h	/^	float y;$/;"	m	struct:v4
+y	game_platform.h	/^    float x, y, w, h;$/;"	m	struct:__anon6
+y	opengl_test.cpp	/^    float x, y;$/;"	m	struct:__anon9	file:
+y	sdl3_game_loop.cpp	/^	float x, y;$/;"	m	struct:State	file:
+y	win32_game_loop.cpp	/^	float x, y;$/;"	m	struct:State	file:
+z	game_math.h	/^	float z;$/;"	m	struct:v3
+z	game_math.h	/^	float z;$/;"	m	struct:v4

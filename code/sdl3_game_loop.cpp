@@ -292,7 +292,7 @@ int main(int argc, char* argv[])
 			previousState = currentState;
 			integrate(currentState, t, dt);
 
-			GameFrame(&cb, &GameMemory, Input);
+			GameFrame(&cb, &GameMemory, Input, dt);
 
 			t += dt;
 			accumulator -= dt;

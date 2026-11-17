@@ -1,17 +1,21 @@
 #include "game.h"
 
 	
-void InitGame(game_memory* Memory)
+void InitGame(game_memory* Memory, float dt)
 {	
 	if(Memory->IsInitialized)
 	{
 		game_state *GameState = (game_state *)Memory->PermanentStorage;
 		
+		GameState->dt = dt;
+
 		// For a single object
 		Hero = PushStruct(&GameState->WorldArena, hero_entity);
 		Hero->Health = 100;
-		Hero->x = 0.0f;
-		Hero->y = 0.0f;
+		Hero->pos.x = 0.0f;
+		Hero->pos.y = 0.0f;
+		Hero->velocity.x = 10.0f;
+		Hero->velocity.y = 10.0f;
 		
 		// for multiple objects
 		Enemies = PushArray(&GameState->WorldArena, MaxEnemies, enemy_entity);
@@ -29,7 +33,7 @@ void build_render_frame(CommandBuffer* cb) {
 
     // Draw a red rectangle in the center
     CmdDrawRectangle* rect1 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
-    *rect1 = { Hero->x, Hero->y, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
+    *rect1 = { Hero->pos.x, Hero->pos.y, 2.5f, 2.5f, 1.0f, 0.2f, 0.2f, 1.0f };
 
     // Draw a smaller green rectangle overlapping it
     CmdDrawRectangle* rect2 = CMD_PUSH(cb, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
@@ -40,7 +44,7 @@ void build_render_frame(CommandBuffer* cb) {
     *rect3 = { 13.0f, 10.0f, 5.0f, 10.4f, 0.2f, 0.0f, 0.9f, 1.0f };
 }
 
-void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
+void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input, float dt)
 {
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
 
@@ -52,9 +56,10 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
 						(uint8_t *)Memory->PermanentStorage + sizeof(game_state));
 
 		Memory->IsInitialized = true;
-		InitGame(Memory);
+		InitGame(Memory, dt);
 	}
 	
+	v2 move_dir = { 0.0f, 0.0f };	
 	for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
 	{
 		game_controller_input *Controller = &Input->Controllers[ControllerIndex];
@@ -69,22 +74,22 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
 			// Digital movement tuning
 			if(Controller->MoveLeft.EndedDown)
 			{
-				Hero->x -= 1;
+				move_dir.x = -1.0f;
 			}
 
 			if(Controller->MoveRight.EndedDown)
 			{
-				Hero->x += 1;
+				move_dir.x = 1.0f;
 			}
 			
 			if(Controller->MoveUp.EndedDown)
 			{
-				Hero->y += 1;
+				move_dir.y = 1.0f;
 			}
 
 			if(Controller->MoveDown.EndedDown)
 			{
-				Hero->y -= 1;
+				move_dir.y = -1.0f;
 			}
 		}
 
@@ -93,7 +98,17 @@ void GameFrame(CommandBuffer* cb, game_memory* Memory, game_input* Input)
 			// GameState->GreenOffset += 1;
 		}
 	}
-
+	
+	float length_sq = (move_dir.x * move_dir.x) + (move_dir.y * move_dir.y);
+    	if (length_sq > 1.0f) {
+        	float length = sqrtf(length_sq);
+        	move_dir.x /= length;
+        	move_dir.y /= length;
+    	}
+	
+	Hero->pos.x += move_dir.x * Hero->velocity.x * GameState->dt;
+	Hero->pos.y += move_dir.y * Hero->velocity.y * GameState->dt;
+	
 	// write_sound_output_buffer();
 	
 	// write_render_buffer();
