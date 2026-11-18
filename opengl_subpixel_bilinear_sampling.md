@@ -103,3 +103,75 @@ Why This Works Better Than Low-Res FBO Scaling
 
 * Smooth Subpixel Physics: Characters, moving platforms, and camera pans move at native monitor resolution (e.g., 1080p/1440p) with zero judder, while art pixels remain razor-sharp.
 * Clean Rotations & Zooms: Rotating a sword or zooming the camera smoothly anti-aliases diagonal pixel edges without turning the sprite into a blurry smudge.
+
+# Sample OpenGL ES 3.0 
+
+In OpenGL ES 3.0, you can use the exact same fwidth() sharp bilinear approach, provided you declare explicit precision qualifiers (highp) for your UV coordinates. Mobile and embedded GPUs default fragment shaders to mediump (16-bit float), which lacks the precision needed for subpixel texel math and will cause shimmering or blocky artifacts on larger sprite sheets.
+
+1. OpenGL ES 3.0 Shader Setup (#version 300 es)
+
+
+Vertex Shader
+
+Pass your texture coordinates using highp so subpixel offsets survive interpolation across triangles:
+
+~~~~ C
+#version 300 es
+precision highp float;
+
+layout(location = 0) in vec2 a_Position;
+layout(location = 1) in vec2 a_TexCoord;
+
+uniform mat4 u_MVP;
+
+out highp vec2 v_TexCoord;
+
+void main() {
+    gl_Position = u_MVP * vec4(a_Position, 0.0, 1.0);
+    v_TexCoord = a_TexCoord;
+}
+~~~~
+
+
+Fragment Shader
+
+Use highp for all texel math and fwidth() derivative calculations. In OpenGL ES 3.0, fwidth() and textureSize() are built into the core language without needing extensions.
+
+~~~~ C
+#version 300 es
+precision highp float;
+
+in highp vec2 v_TexCoord;
+out lowp vec4 FragColor;
+
+uniform highp sampler2D u_Texture;
+
+void main() {
+    // Get texture dimensions as highp floats
+    highp vec2 texSize = vec2(textureSize(u_Texture, 0));
+    
+    // Shift by 0.5 to align with texel centers
+    highp vec2 texel = v_TexCoord * texSize - 0.5;
+    
+    // Screen-space derivative (requires highp to avoid mobile GPU jitter)
+    highp vec2 texelRate = fwidth(texel);
+    
+    // Separate integer texel grid from fractional subpixel offset
+    highp vec2 i = floor(texel);
+    highp vec2 f = fract(texel);
+    
+    // Compress the linear blend zone to 1 screen pixel wide
+    f = clamp(f / max(texelRate, vec2(1e-5)), 0.0, 1.0);
+    
+    // Reconstruct normalized UVs and sample with hardware GL_LINEAR
+    highp vec2 smoothUV = (i + f + 0.5) / texSize;
+    FragColor = texture(u_Texture, smoothUV);
+}
+~~~~
+
+
+2. Mobile GPU Performance & Precision Tips
+
+• Keep highp on UVs: On GPUs like Mali or Adreno, mediump only has 10 bits of mantissa precision (1024 discrete steps). On a 1024×1024 sprite atlas, mediump cannot represent any subpixel positions at all, forcing hard pixel snapping or jitter.
+• Avoid Mipmaps (GL_LINEAR only): Make sure GL_TEXTURE_MIN_FILTER is set to GL_LINEAR (not GL_LINEAR_MIPMAP_LINEAR). Mipmaps blur low-res pixel art when zooming out and require extra memory bandwidth on mobile devices.
+• Tilemap Seams on Subpixel Cameras: If you draw tilemaps as individual quads at fractional camera coordinates, mobile GPUs can occasionally drop a 1-pixel line between tiles due to floating-point rounding. Either render tilemaps into a single mesh with shared vertices, or extrude tile borders by 1 pixel in your atlas and inset your quad UVs by half a texel (0.5 / texSize) only if you switch back to GL_NEAREST. With the sharp bilinear shader above, do not inset UVs—just extrude tile edges by 1 pixel in the atlas texture.
