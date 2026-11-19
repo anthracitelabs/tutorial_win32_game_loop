@@ -1,4 +1,4 @@
-#include "game.h"
+#include "game_world.h"
 
 	
 void InitGame(game_memory* GameMemory, float dt)
@@ -108,6 +108,22 @@ void build_render_frame(game_memory* Memory, float alpha)
 
 		CmdClear* clear = CMD_PUSH(&GameState->CommandBufferArena, CMD_CLEAR, CmdClear);
 		*clear = { 0.1f, 0.1f, 0.15f, 1.0f };
+		
+		float sx = 0.0f;
+		float sy = 0.0f;
+		float TileLength = 2.0f;
+		for(int i = 0; i < GetRowTileCount(); i++)
+		{
+			for(int j = 0; j < GetColumnTileCount(); j++)
+			{
+				uint8 Tile = GetTile(i, j);
+				if(Tile == 1)
+				{	
+					CmdDrawRectangle* rect = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
+					*rect = { sx + j * TileLength, sy + i * TileLength, TileLength, TileLength, 0.0f, 1.0f, 1.0f, 1.0f };
+				}
+			}
+		}
 
 		// interpolate Hero position
 		float x = Hero->pos.x * alpha + Hero->pre_pos.x * (1.0f - alpha);
