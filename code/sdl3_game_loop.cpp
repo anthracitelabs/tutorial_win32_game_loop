@@ -4,147 +4,14 @@
 #include <chrono>
 #include <stdlib.h>
 
-#include "game_platform.h"
-#include "opengl_loader.h"
 #include "game.cpp"
+#include "sdl3_input.h"
+
+#include "opengl_loader.h"
 #include "opengl_test.cpp"
 
 static bool GlobalRunning;
 
-
-struct State {
-	float a;
-	float v;
-	float x, y;
-};
-
-void cmd_buffer_init(CommandBuffer* cb, size_t capacity_bytes) {
-    cb->buffer = (uint8_t*)malloc(capacity_bytes);
-    //assert(cb->buffer != NULL && "Failed to allocate command buffer");
-    cb->capacity = capacity_bytes;
-    cb->offset = 0;
-}
-
-void cmd_buffer_destroy(CommandBuffer* cb) {
-    free(cb->buffer);
-    cb->buffer = NULL;
-    cb->capacity = 0;
-    cb->offset = 0;
-}
-
-// Calculates forces/accelerations acting on the state
-// For example: gravity, wind resistance, player input, or springs
-float calculate_acceleration(const State& state, float t) {
-    const float gravity = -9.81f;
-    const float drag_coefficient = 0.1f;
-    
-    // Total acceleration = gravity minus air resistance proportional to velocity
-    return gravity - (drag_coefficient * state.v);
-}
-
-void integrate(State& state, float t, float dt)
-{
-	// 1. Calculate acceleration for the current state
-    float acceleration = calculate_acceleration(state, t);
-    
-	state.a = acceleration;
-	
-    // 2. Update velocity first (Semi-Implicit step)
-    state.v += acceleration * dt;
-    
-    // 3. Update position using the *new* velocity
-	state.y += state.v * dt;
-}
-
-void render(const State& state)
-{   
-    // 5. Erase the old character before moving to the next frame
-    //printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
-}
-
-static void SDLProcessKeyboardMessage(game_button_state *NewState, bool IsDown)
-{
-    if(NewState->EndedDown != IsDown)
-    {
-        NewState->EndedDown = IsDown;
-        ++NewState->HalfTransitionCount;
-    }
-}
-
-void SDLProcessPendingMessages(game_controller_input *KeyboardController)
-{
-    SDL_Event Event;
-	while (SDL_PollEvent(&Event)) 
-	{
-		switch(Event.type)
-		{
-			case SDL_EVENT_KEY_DOWN:
-			case SDL_EVENT_KEY_UP:
-			{
-				if(!Event.key.repeat)
-				{
-					bool IsDown = (Event.type == SDL_EVENT_KEY_DOWN);
-					SDL_Scancode KeyCode = Event.key.scancode;
-					
-					if(KeyCode == SDL_SCANCODE_W)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->MoveUp, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_A)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->MoveLeft, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_S)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->MoveDown, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_D)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_Q)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->LeftShoulder, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_E)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->RightShoulder, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_UP)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->Button_A, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_DOWN)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->Button_B, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_LEFT)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->Button_X, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_RIGHT)
-					{
-						SDLProcessKeyboardMessage(&KeyboardController->Button_Y, IsDown);
-					}
-					if(KeyCode == SDL_SCANCODE_ESCAPE)
-					{
-						GlobalRunning = false;
-					}
-				}
-			} break;
-			
-			case SDL_EVENT_WINDOW_RESIZED:
-			{
-				glViewport(0, 0, Event.window.data1, Event.window.data2);
-			} break;
-			
-			case SDL_EVENT_QUIT:
-			{
-				GlobalRunning = false;
-			} break;
-		}
-	}
-}
 
 int main(int argc, char* argv[]) 
 {
@@ -200,13 +67,10 @@ int main(int argc, char* argv[])
 	GlobalRunning = true;
 
 	float t = 0.0;
-	float dt = 0.1;
+	float dt = 0.033;
 
 	std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 	float accumulator = 0.0;
-
-	State previousState = {0};
-	State currentState = {0};
 
 	// ------------------------------------
 	// GAME MEMORY ALLOCATION SECTION
@@ -236,13 +100,13 @@ int main(int argc, char* argv[])
 		// Handle memory allocation failure
 	}
 	
-	CommandBuffer cb;
-	cmd_buffer_init(&cb, 10240);
+	GameMemory.IsInitialized = true;
+		
+	InitGame(&GameMemory, dt);
 	// ------------------------------------
 	// GAME MEMORY ALLOCATION SECTION
 	// ------------------------------------
 
-	//InitRenderingTest();
 	gl_renderer_init();
 
 	// initialize Gamepad 
@@ -257,24 +121,7 @@ int main(int argc, char* argv[])
 	{
 		std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
 
-		// ------------------------------------
-		// KEYBOARD INPUT PROCESSING SECTION
-		// ------------------------------------
-		game_controller_input *OldKeyboardController = &OldInput->Controllers[0];
-		game_controller_input *NewKeyboardController = &NewInput->Controllers[0];
-		game_controller_input ZeroController = {};
-		*NewKeyboardController = ZeroController;
-		NewKeyboardController->IsConnected = true;
-
-		// carry only EndedDown from OldKeyboardController, reset rest
-		for(int ButtonIndex = 0; ButtonIndex < ArrayCount(NewKeyboardController->Buttons); ++ButtonIndex)
-		{
-			NewKeyboardController->Buttons[ButtonIndex].EndedDown = OldKeyboardController->Buttons[ButtonIndex].EndedDown;
-		}
-		SDLProcessPendingMessages(NewKeyboardController);
-		// ------------------------------------
-		// KEYBOARD INPUT PROCESSING SECTION
-		// ------------------------------------
+		input(OldInput, NewInput, GlobalRunning);
 
 		std::chrono::duration<float> frameTime = newTime - currentTime;
 
@@ -289,10 +136,7 @@ int main(int argc, char* argv[])
 
 		while(accumulator >= dt)
 		{
-			previousState = currentState;
-			integrate(currentState, t, dt);
-
-			GameFrame(&cb, &GameMemory, Input, dt);
+			GameFrame(&GameMemory, Input);
 
 			t += dt;
 			accumulator -= dt;
@@ -303,24 +147,11 @@ int main(int argc, char* argv[])
 
 		const float alpha = accumulator / dt;
 
+		build_render_frame(&GameMemory, alpha);
 
-		State state = {
-			currentState.a,
-			currentState.v,
-			currentState.x * alpha + previousState.x * (1.0f - alpha), 
-			currentState.y * alpha + previousState.y * (1.0f - alpha),
-		};
+		//printf("\racc = %.2f vel = %.2f x = %.2f y = %.2f", state.a, state.v, state.x, state.y);
 		
-
-		build_render_frame(&cb, &GameMemory, alpha);
-		//render(state);
-
-		// OpenGL Rendering
-		//glClearColor(0.5f, 0.15f, 0.2f, 1.0f);
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		//RenderTestFrame(previousState.x, previousState.y, currentState.x, currentState.y, alpha);
-		gl_renderer_execute(&cb);
+		gl_renderer_execute(&GameMemory);
 		
 		// Swap front and back buffers
 		SDL_GL_SwapWindow(Window);
@@ -346,8 +177,6 @@ int main(int argc, char* argv[])
 			lastFpsUpdateTime = frameEndTime;
 		}
 	}
-
-	cmd_buffer_destroy(&cb);
 	
 	// 7. Cleanup
 	SDL_GL_DestroyContext(gl_context);
