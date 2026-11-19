@@ -1,8 +1,8 @@
 #if !defined(GAME_H)
 #define GAME_H
 
-#include "game_math.h"
 #include "game_platform.h"
+#include "game_math.h"
 
 struct game_button_state	// CONTROLLER BUTTON STATES
 {
@@ -48,7 +48,8 @@ struct game_state
 {
     // Memory sub-management
     memory_arena WorldArena;
-
+	memory_arena CommandBufferArena;
+	
     float dt;
 
     // Camera and spatial tracking
@@ -72,18 +73,21 @@ struct game_state
 struct hero_entity
 {
 	v2 pos;
+	v2 pre_pos;
 	v2 velocity;
 	int Health;
 };
 
 struct enemy_entity
 {
-	float x, y;
+	v2 pos;
+	v2 velocity;
+	v2 acceleration;
 	int Health;
 };
 
 hero_entity *Hero;
-hero_entity *Hero_prev;
+
 uint32_t MaxEnemies = 256;
 enemy_entity *Enemies;
 
