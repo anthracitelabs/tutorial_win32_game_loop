@@ -32,16 +32,16 @@ struct game_memory
 
 struct memory_arena
 {
-    size_t Size;
-    uint8_t *Base;
-    size_t Used;
+    size_t Capacity;
+    uint8_t *Buffer;
+    size_t Offset;
 };
 
 void InitializeArena(memory_arena *Arena, size_t Size, void *Base)
 {
-    Arena->Size = Size;
-    Arena->Base = (uint8_t *)Base;
-    Arena->Used = 0;
+    Arena->Capacity = Size;
+    Arena->Buffer = (uint8_t *)Base;
+    Arena->Offset = 0;
 }
 
 void *PushSize_(memory_arena *Arena, size_t Size)
@@ -50,15 +50,14 @@ void *PushSize_(memory_arena *Arena, size_t Size)
     //Assert((Arena->used + Size) <= Arena->size);
     
     // Grab the pointer to the start of this specific allocation
-    void *Result = Arena->Base + Arena->Used;
+    void *Result = Arena->Buffer + Arena->Offset;
     
     // Move the pointer forward for the next allocation
-    Arena->Used += Size;
+    Arena->Offset += Size;
     
     return(Result);
 }
 
-// may be a different header file?
 typedef enum {
 	CMD_CLEAR = 1,
 	CMD_DRAW_RECTANGLE
@@ -77,30 +76,30 @@ typedef struct {
     float x, y, w, h;
     float r, g, b, a;
 } CmdDrawRectangle;
-
+/*
 typedef struct {
     uint8_t* buffer;
     size_t capacity;
     size_t offset;
-} CommandBuffer;
+} CommandBuffer;*/
 
-void cmd_buffer_reset(CommandBuffer* cb) {
-    cb->offset = 0;
+void cmd_buffer_reset(memory_arena *Arena) {
+    Arena->Offset = 0;
 }
 
 // Core allocation function: writes header and returns pointer to payload
-void* cmd_buffer_push_raw(CommandBuffer* cb, uint16_t type, size_t payload_size) {
+void* cmd_buffer_push_raw(memory_arena *Arena, uint16_t type, size_t payload_size) {
     // Align current offset to an 8-byte boundary
-    size_t aligned_offset = (cb->offset + 7) & ~((size_t)7);
+    size_t aligned_offset = (Arena->Offset + 7) & ~((size_t)7);
     size_t total_size = sizeof(CmdHeader) + payload_size;
 
     //assert(aligned_offset + total_size <= cb->capacity && "CommandBuffer out of memory!");
 
-    CmdHeader* header = (CmdHeader*)(cb->buffer + aligned_offset);
+    CmdHeader* header = (CmdHeader*)(Arena->Buffer + aligned_offset);
     header->type = type;
     header->size = (uint16_t)total_size;
 
-    cb->offset = aligned_offset + total_size;
+    Arena->Offset = aligned_offset + total_size;
 
     // Return memory address immediately following the header
     return (void*)(header + 1);
