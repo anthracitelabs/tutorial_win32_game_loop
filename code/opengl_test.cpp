@@ -127,13 +127,15 @@ void gl_renderer_init() {
     glBindVertexArray(0);
 }
 
-void gl_renderer_execute(const CommandBuffer* cb) {
+void gl_renderer_execute(game_memory* Memory) {
     glUseProgram(r.shader_program);
     glBindVertexArray(r.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r.vbo);
 
-    const uint8_t* ptr = cb->buffer;
-    const uint8_t* end = cb->buffer + cb->offset;
+	game_state *GameState = (game_state *)Memory->PermanentStorage;
+	
+    const uint8_t* ptr = GameState->CommandBufferArena.Buffer;
+    const uint8_t* end = GameState->CommandBufferArena.Buffer + GameState->CommandBufferArena.Offset;
 
     while (ptr < end) {
         uintptr_t raw_addr = (uintptr_t)ptr;
