@@ -20,8 +20,8 @@ void InitGame(game_memory* GameMemory, float dt)
 	// For a single object
 	Hero = PushStruct(&GameState->WorldArena, hero_entity);
 	Hero->Health = 100;
-	Hero->pos.x = 0.0f;
-	Hero->pos.y = 0.0f;
+	Hero->pos.x = 20.0f;
+	Hero->pos.y = 20.0f;
 	Hero->pre_pos.x = 0.0f;
 	Hero->pre_pos.y = 0.0f;
 	Hero->velocity.x = 10.0f;
@@ -88,8 +88,9 @@ void GameFrame(game_memory* Memory, game_input* Input)
 
 		Hero->pre_pos = Hero->pos;
 		
-		Hero->pos.x += move_dir.x * Hero->velocity.x * GameState->dt;
-		Hero->pos.y += move_dir.y * Hero->velocity.y * GameState->dt;
+		MoveEntity(Hero, (move_dir.x * Hero->velocity.x * GameState->dt), (move_dir.y * Hero->velocity.y * GameState->dt));
+		Hero->pos.x = Hero->box.x;
+		Hero->pos.y = Hero->box.y;;
 		
 		// write_sound_output_buffer();
 		
@@ -111,16 +112,16 @@ void build_render_frame(game_memory* Memory, float alpha)
 		
 		float sx = 0.0f;
 		float sy = 0.0f;
-		float TileLength = 2.0f;
-		for(int i = 0; i < GetRowTileCount(); i++)
+
+		for(int i = 0; i < ROW_TILE_COUNT; i++)
 		{
-			for(int j = 0; j < GetColumnTileCount(); j++)
+			for(int j = 0; j < COLUMN_TILE_COUNT; j++)
 			{
 				uint8 Tile = GetTile(i, j);
 				if(Tile == 1)
 				{	
 					CmdDrawRectangle* rect = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
-					*rect = { sx + j * TileLength, sy + i * TileLength, TileLength, TileLength, 0.0f, 1.0f, 1.0f, 1.0f };
+					*rect = { sx + j * TILE_WIDTH, sy + i * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, 0.1f, 0.1f, 0.1f, 1.0f };
 				}
 			}
 		}
@@ -128,7 +129,9 @@ void build_render_frame(game_memory* Memory, float alpha)
 		// interpolate Hero position
 		float x = Hero->pos.x * alpha + Hero->pre_pos.x * (1.0f - alpha);
 		float y = Hero->pos.y * alpha + Hero->pre_pos.y * (1.0f - alpha);
-	 
+		//int roundedX = RoundReal32ToInt32(x);
+		//int roundedY = RoundReal32ToInt32(y);
+		
 		CmdDrawRectangle* rect1 = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
 		*rect1 = { x, y, 0.5f, 0.5f, 1.0f, 0.2f, 0.2f, 1.0f };
 	}
