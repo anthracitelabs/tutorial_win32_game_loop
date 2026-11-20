@@ -70,8 +70,14 @@ struct game_state
     float TimeSinceStart;
 };
 
+struct AABB {
+	float x, y;	// Center position (world units)
+	float halfW, halfH;	//Half extent
+};
+
 struct hero_entity
 {
+	AABB box;
 	v2 pos;
 	v2 pre_pos;
 	v2 velocity;
