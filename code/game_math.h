@@ -76,10 +76,31 @@ static inline float Clamp(float Min, float Value, float Max)
     return Result;
 }
 
+static inline int min_int(int a, int b) { return (a < b) ? a : b; }
+static inline int max_int(int a, int b) { return (a > b) ? a : b; }
+
+static inline float min_float(float a, float b) { return (a < b) ? a : b; }
+static inline float max_float(float a, float b) { return (a > b) ? a : b; }
+
+/* Use RoundReal32ToInt32 for pixel snapping. When converting continuous sub-pixel camera or sprite positions to integer screen coordinates, 
+_mm_cvtss_si32 snaps symmetrically to the nearest pixel center without branch overhead.*/
 inline int32 RoundReal32ToInt32(float input)
 {
 	int32 result = (int32)roundf(input);
 	return result;
+}
+
+/* Use FloorReal32ToInt32 for tile/grid lookups. Flooring always rounds toward -∞, keeping tile intervals uniform across negative and positive coordinates. */
+inline int32 FloorReal32ToInt32(float val)
+{
+    int32 Result = (int32)floorf(val);
+    return(Result);
+}
+
+inline int32 CeilReal32ToInt32(float val)
+{
+    int32 Result = (int32)ceilf(val);
+    return(Result);
 }
 
 inline v2 operator+(v2 a, v2 b)
