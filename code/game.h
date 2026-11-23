@@ -92,7 +92,14 @@ struct enemy_entity
 	int Health;
 };
 
+struct camera
+{
+	v3 pre_pos;
+	v3 pos;
+};
+
 hero_entity *Hero;
+camera *Camera;
 
 uint32_t MaxEnemies = 256;
 enemy_entity *Enemies;
