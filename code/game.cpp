@@ -31,6 +31,14 @@ void InitGame(game_memory* GameMemory, float dt)
 	Hero->velocity.x = 10.0f;
 	Hero->velocity.y = 10.0f;
 	
+	Camera = PushStruct(&GameState->WorldArena, camera);
+	Camera->pos.x = 0.0f;
+	Camera->pos.y = 0.0f;
+	Camera->pos.z = 30.0f;
+	Camera->pre_pos.x = Camera->pos.x;
+	Camera->pre_pos.y = Camera->pos.y;
+	Camera->pre_pos.z = Camera->pos.z;
+	
 	// for multiple objects
 	Enemies = PushArray(&GameState->WorldArena, MaxEnemies, enemy_entity);
 	
@@ -43,7 +51,9 @@ void GameFrame(game_memory* Memory, game_input* Input)
 	{
 		game_state *GameState = (game_state *)Memory->PermanentStorage;
 		
-		v2 move_dir = { 0.0f, 0.0f };	
+		v2 move_dir = { 0.0f, 0.0f };
+		v2 camera_move_dir = { 0.0f, 0.0f };		
+		
 		for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
 		{
 			game_controller_input *Controller = &Input->Controllers[ControllerIndex];
@@ -75,6 +85,23 @@ void GameFrame(game_memory* Memory, game_input* Input)
 				{
 					move_dir.y = +1.0f;
 				}
+				
+				if(Controller->Button_A.EndedDown)
+				{
+					camera_move_dir.y = 1.0f;
+				}
+				if(Controller->Button_B.EndedDown)
+				{
+					camera_move_dir.y = -1.0f;
+				}
+				if(Controller->Button_X.EndedDown)
+				{
+					camera_move_dir.x = -1.0f;
+				}
+				if(Controller->Button_Y.EndedDown)
+				{
+					camera_move_dir.x = 1.0f;
+				}
 			}
 
 			if(Controller->Button_A.EndedDown)
@@ -89,9 +116,15 @@ void GameFrame(game_memory* Memory, game_input* Input)
 				move_dir.x /= length;
 				move_dir.y /= length;
 			}
+			
+		float camera_length_sq = (camera_move_dir.x * camera_move_dir.x) + (camera_move_dir.y * camera_move_dir.y);
+			if (camera_length_sq > 1.0f) {
+				float camera_length = sqrtf(camera_length_sq);
+				camera_move_dir.x /= camera_length;
+				camera_move_dir.y /= camera_length;
+			}
 
 		Hero->pre_pos = Hero->pos;
-		
 		float dx = (move_dir.x * Hero->velocity.x * GameState->dt);
 		float dy = (move_dir.y * Hero->velocity.y * GameState->dt);
 		if(dx > 0.0f || dy > 0.0f || dx < 0.0f || dy < 0.0f)
@@ -101,6 +134,10 @@ void GameFrame(game_memory* Memory, game_input* Input)
 		
 		Hero->pos.x = Hero->box.x;
 		Hero->pos.y = Hero->box.y;;
+		
+		Camera->pre_pos = Camera->pos;
+		Camera->pos.x += (camera_move_dir.x * Hero->velocity.x * GameState->dt);
+		Camera->pos.y += (camera_move_dir.y * Hero->velocity.y * GameState->dt);
 		
 		// write_sound_output_buffer();
 		
@@ -141,6 +178,13 @@ void build_render_frame(game_memory* Memory, float alpha)
 		
 		CmdDrawRectangle* rect1 = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
 		*rect1 = { x - Hero->box.halfW, (ROW_TILE_COUNT * TILE_WIDTH) - (y + Hero->box.halfH), Hero->box.halfW * 2.0f, Hero->box.halfH * 2.0f, 1.0f, 0.2f, 0.2f, 1.0f };
+		
+		// interpolate Camera position
+		float camera_x = Camera->pos.x * alpha + Camera->pre_pos.x * (1.0f - alpha);
+		float camera_y = Camera->pos.y * alpha + Camera->pre_pos.y * (1.0f - alpha);
+		//send camera command
+		CmdCamera* cameraCmd = CMD_PUSH(&GameState->CommandBufferArena, CMD_CAMERA, CmdCamera);
+		*cameraCmd = {camera_x, camera_y, 30.0f};
 	}
 }
 
