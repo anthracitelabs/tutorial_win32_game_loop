@@ -1,179 +1,166 @@
-## A C++ implementation of Swept AABB with velocity sliding and internal-edge filtering
+For a custom 2D platformer engine with fast-moving entities, combine axis-separated AABB resolution with velocity sub-stepping as your primary tilemap collision pipeline. It avoids the corner-snagging bugs of swept Minkowski math on multi-tile grids while giving you deterministic control over platformer physics.
 
-Here is a self-contained C++17 implementation of Swept AABB using Minkowski sum expansion, iterative velocity sliding, and tilemap internal-edge filtering.
+1. Sub-Stepping Loop
 
+Fast projectiles or dashing characters can skip over single tiles in one frame. Divide the frame's displacement into small increments—typically capped at half the entity's smallest dimension (or half a tile width)—and run the collision solver for each step.
+* Step Count: steps = ceil(max(abs(dx), abs(dy)) / maxStepSize)
+* Benefit: Guarantees an entity never moves far enough in one iteration to miss a solid grid cell.
 
-Key Design Mechanics
-------------------------------
+2. Axis-Separated Grid Resolution
 
-* Minkowski Sum Expansion: Instead of sweeping a box against a box, each solid tile's AABB is expanded by the entity's half-extents, reducing the problem to a raycast from the entity's center.
-* Internal-Edge Filtering: Before accepting a collision normal (e.g., (-1, 0)), the solver checks if the adjacent tile in that normal's direction is also solid. If it is, that edge is an internal seam and is ignored so the entity never snags while sliding across flat floors or walls.
-* Skin Epsilon (SKIN): Stops the entity a tiny fraction (1e-4f) before the exact surface so floating-point rounding never leaves it embedded inside a tile on the next iteration.
+For each sub-step, resolve the X-axis completely before moving on the Y-axis:
+1. Move X: Add stepX to the entity's X position.
+2. Query Overlapping Tiles: Compute the min/max tile indices overlapped by the entity's AABB (floor(min / tileSize) to floor((max - epsilon) / tileSize)).
+3. Resolve X: If any overlapped tile is solid, snap the entity's leading edge flush against the tile boundary (tileX * tileSize or (tileX + 1) * tileSize) and zero out X velocity.
+4. Move & Resolve Y: Repeat the exact same process for stepY using the updated X position.
+
+3. Essential Platformer Edge Cases
+
+* Epsilon Inset: Subtract a tiny epsilon (e.g., 0.001f) from the max bounds when calculating tile indices so an entity resting flush at x = 32.0 on a 32px grid doesn't falsely register an overlap with tile index 1.
+* Internal Edge Snags: Resolving X and Y separately naturally prevents an entity from catching on flat seams between adjacent floor or wall tiles.
+* Slopes & One-Way Platforms: Handle one-way platforms only during downward Y resolution when the entity's previous bottom edge was above the tile's top edge. For slopes, evaluate surface height y(x) at the entity's horizontal center or leading edge during the Y pass.
 
 ~~~~ cpp
-#include <algorithm>
-#include <cmath>
-#include <limits>
-#include <vector>
-
-struct Vec2 {
-    float x = 0.0f;
-    float y = 0.0f;
-
-    Vec2 operator+(Vec2 r) const { return {x + r.x, y + r.y}; }
-    Vec2 operator-(Vec2 r) const { return {x - r.x, y - r.y}; }
-    Vec2 operator*(float s) const { return {x * s, y * s}; }
-};
-
-inline float Dot(Vec2 a, Vec2 b) { return a.x * b.x + a.y * b.y; }
-
 struct AABB {
-    Vec2 center;
-    Vec2 halfSize;
+    float x, y, w, h; // Top-left position and size
 };
 
-struct RayHit {
-    bool hit = false;
-    float t = 1.0f;      // Time of impact in [0, 1]
-    Vec2 normal = {0, 0};
-};
+void MoveAndCollide(AABB& box, float& vx, float& vy, float dt, float tileSize) {
+    float dx = vx * dt;
+    float dy = vy * dt;
 
-// Simple grid-based tilemap interface
-struct Tilemap {
-    int width = 0;
-    int height = 0;
-    float tileSize = 16.0f;
-    std::vector<uint8_t> solid; // 1 = solid, 0 = empty
+    float maxStep = std::min(box.w, box.h) * 0.5f;
+    int steps = std::max(1, (int)std::ceil(std::max(std::abs(dx), std::abs(dy)) / maxStep));
 
-    bool IsSolid(int tx, int ty) const {
-        if (tx < 0 || ty < 0 || tx >= width || ty >= height) return false;
-        return solid[ty * width + tx] != 0;
-    }
+    float stepX = dx / steps;
+    float stepY = dy / steps;
+    const float eps = 0.001f;
 
-    AABB GetTileAABB(int tx, int ty) const {
-        float half = tileSize * 0.5f;
-        return {
-            {tx * tileSize + half, ty * tileSize + half},
-            {half, half}
-        };
-    }
-};
+    for (int s = 0; s < steps; ++s) {
+        // 1. Resolve X
+        box.x += stepX;
+        int minTX = (int)std::floor(box.x / tileSize);
+        int maxTX = (int)std::floor((box.x + box.w - eps) / tileSize);
+        int minTY = (int)std::floor(box.y / tileSize);
+        int maxTY = (int)std::floor((box.y + box.h - eps) / tileSize);
 
-// Ray vs. Static AABB (Slab Method)
-// Ray starts at `origin` and travels along `delta` (velocity * dt).
-RayHit SweepRayVsAABB(Vec2 origin, Vec2 delta, const AABB& target) {
-    RayHit result;
-    const float EPS = 1e-6f;
-
-    float tEntryX, tExitX;
-    if (std::abs(delta.x) < EPS) {
-        if (origin.x < target.center.x - target.halfSize.x ||
-            origin.x > target.center.x + target.halfSize.x) {
-            return result;
-        }
-        tEntryX = -std::numeric_limits<float>::infinity();
-        tExitX  =  std::numeric_limits<float>::infinity();
-    } else {
-        float invDx = 1.0f / delta.x;
-        float t1 = (target.center.x - target.halfSize.x - origin.x) * invDx;
-        float t2 = (target.center.x + target.halfSize.x - origin.x) * invDx;
-        tEntryX = std::min(t1, t2);
-        tExitX  = std::max(t1, t2);
-    }
-
-    float tEntryY, tExitY;
-    if (std::abs(delta.y) < EPS) {
-        if (origin.y < target.center.y - target.halfSize.y ||
-            origin.y > target.center.y + target.halfSize.y) {
-            return result;
-        }
-        tEntryY = -std::numeric_limits<float>::infinity();
-        tExitY  =  std::numeric_limits<float>::infinity();
-    } else {
-        float invDy = 1.0f / delta.y;
-        float t1 = (target.center.y - target.halfSize.y - origin.y) * invDy;
-        float t2 = (target.center.y + target.halfSize.y - origin.y) * invDy;
-        tEntryY = std::min(t1, t2);
-        tExitY  = std::max(t1, t2);
-    }
-
-    float tEntry = std::max(tEntryX, tEntryY);
-    float tExit  = std::min(tExitX, tExitY);
-
-    // Reject if no overlap, or if box is behind ray, or already overlapping (tEntry < 0)
-    if (tEntry > tExit || tExit < 0.0f || tEntry < 0.0f || tEntry > 1.0f) {
-        return result;
-    }
-
-    result.hit = true;
-    result.t = tEntry;
-
-    if (tEntryX > tEntryY) {
-        result.normal = {delta.x > 0.0f ? -1.0f : 1.0f, 0.0f};
-    } else {
-        result.normal = {0.0f, delta.y > 0.0f ? -1.0f : 1.0f};
-    }
-
-    return result;
-}
-
-struct MoveResult {
-    Vec2 finalPosition;
-    Vec2 finalVelocity;
-    bool onGround = false;
-    bool hitWall = false;
-    bool hitCeiling = false;
-};
-
-// Moves an entity through the tilemap with continuous sweep and sliding
-MoveResult MoveAndSlide(AABB entity, Vec2 velocity, float dt, const Tilemap& map) {
-    MoveResult out;
-    Vec2 remainingMove = velocity * dt;
-    const int MAX_SLIDE_ITERATIONS = 3;
-    const float SKIN = 1e-4f;
-
-    for (int iter = 0; iter (std::floor(minX / map.tileSize));
-        int tileMaxX = static_cast<int>(std::floor(maxX / map.tileSize));
-        int tileMinY = static_cast<int>(std::floor(minY / map.tileSize));
-        int tileMaxY = static_cast<int>(std::floor(maxY / map.tileSize));
-
-        RayHit earliestHit;
-        earliestHit.t = 1.0f;
-
-        // 2. Narrowphase: test swept ray against Minkowski-expanded tiles
-        for (int ty = tileMinY; ty (hit.normal.x);
-                int neighborY = ty + static_cast<int>(hit.normal.y);
-                if (map.IsSolid(neighborX, neighborY)) {
-                    continue;
+        for (int ty = minTY; ty <= maxTY; ++ty) {
+            for (int tx = minTX; tx <= maxTX; ++tx) {
+                if (IsTileSolid(tx, ty)) {
+                    if (stepX > 0.0f) box.x = tx * tileSize - box.w;
+                    else if (stepX < 0.0f) box.x = (tx + 1) * tileSize;
+                    vx = 0.0f;
+                    stepX = 0.0f;
                 }
+            }
+        }
 
-                if (hit.t  0.0f) ? (SKIN / moveLen) : 0.0f;
-        float safeT = std::max(0.0f, earliestHit.t - skinT);
+        // 2. Resolve Y
+        box.y += stepY;
+        minTX = (int)std::floor(box.x / tileSize);
+        maxTX = (int)std::floor((box.x + box.w - eps) / tileSize);
+        minTY = (int)std::floor(box.y / tileSize);
+        maxTY = (int)std::floor((box.y + box.h - eps) / tileSize);
 
-        entity.center = entity.center + remainingMove * safeT;
-
-        // Track contact flags (assumes +Y is up; flip if +Y is down)
-        if (earliestHit.normal.y > 0.5f)  out.onGround = true;
-        if (earliestHit.normal.y < -0.5f) out.hitCeiling = true;
-        if (std::abs(earliestHit.normal.x) > 0.5f) out.hitWall = true;
-
-        // 5. Slide remaining displacement and velocity along the hit surface
-        float leftoverRatio = 1.0f - safeT;
-        Vec2 leftoverMove = remainingMove * leftoverRatio;
-
-        remainingMove = leftoverMove - earliestHit.normal * Dot(leftoverMove, earliestHit.normal);
-        velocity      = velocity     - earliestHit.normal * Dot(velocity, earliestHit.normal);
+        for (int ty = minTY; ty <= maxTY; ++ty) {
+            for (int tx = minTX; tx <= maxTX; ++tx) {
+                if (IsTileSolid(tx, ty)) {
+                    if (stepY > 0.0f) box.y = ty * tileSize - box.h;
+                    else if (stepY < 0.0f) box.y = (ty + 1) * tileSize;
+                    vy = 0.0f;
+                    stepY = 0.0f;
+                }
+            }
+        }
     }
+}
+~~~~
 
-    out.finalPosition = entity.center;
-    out.finalVelocity = velocity;
-    return out;
+## Moving Platforms
+
+To handle moving platforms in an axis-separated tilemap engine, update platforms first to carry riders and push intersecting entities, then run the entity's standard tilemap collision pass. Doing this in two distinct phases prevents jittery rider detachment and ensures entities pushed by a platform still collide cleanly with solid world tiles.
+
+
+1. Frame Update Order
+
+Run your physics step in this exact sequence every frame:
+1. Move Platforms: Compute each platform's frame delta (platformDx, platformDy).
+2. Apply Rider & Push Displacement: Before updating the platform's final world position (or immediately after, using its pre-move bounds), identify riders and pushed entities, and move them through the tilemap.
+3. Move Entities: Run normal gravity, player input, and MoveAndCollide against both static tiles and moving platforms.
+
+2. Riding vs. Pushing
+
+Before moving a platform by (dx, dy), check every dynamic entity against the platform's pre-move AABB:
+* Pushing (Overlap after platform moves): If the platform's new AABB overlaps an entity, push the entity along the platform's movement axis until it is flush with the platform's leading edge (platform.x + platform.w or platform.x - entity.w).
+* Carrying (Standing on top): If the entity is grounded on top of the platform (abs((entity.y + entity.h) - platform.y) <= eps and horizontal bounds overlap), carry the entity by the platform's full (dx, dy)—unless the entity was already pushed on that axis.
+
+3. Resolving Against Static Tiles (Crush Prevention)
+
+Never blindly add platformDx or platformDy directly to an entity's coordinates. Instead, pass the carry/push delta into your tilemap collision solver (MoveAndCollideWithTiles) so the carried entity stops against static walls or ceilings.
+* Wall Scraping: If a horizontal platform carries a player into a static wall, the tilemap solver stops the player flush against the wall while the platform slides underneath them.
+* Crush Detection: After pushing an entity out of a moving platform and resolving against static tiles, check if the entity still overlaps the platform's new AABB. If it does, the entity is pinned between the platform and a solid tile—trigger your crush callback (damage, squish, or teleport).
+
+~~~~ cpp
+struct Platform {
+    AABB box;
+    float vx, vy;
+};
+
+void UpdatePlatforms(std::vector<Platform>& platforms, std::vector<Entity>& entities, float dt, float tileSize) {
+    const float eps = 0.01f;
+
+    for (auto& plat : platforms) {
+        float dx = plat.vx * dt;
+        float dy = plat.vy * dt;
+
+        // 1. Move X and check riders/pushes
+        AABB oldBox = plat.box;
+        plat.box.x += dx;
+
+        for (auto& ent : entities) {
+            bool wasRiding = ent.onGround &&
+                std::abs((ent.box.y + ent.box.h) - oldBox.y) <= eps &&
+                (ent.box.x + ent.box.w > oldBox.x) && (ent.box.x  0.0f) 
+                    ? (plat.box.x + plat.box.w) - ent.box.x 
+                    : plat.box.x - (ent.box.x + ent.box.w);
+                MoveEntityTilesOnly(ent, pushX, 0.0f, tileSize);
+
+                if (AABBOverlap(plat.box, ent.box)) {
+                    OnEntityCrushed(ent);
+                }
+            } else if (wasRiding) {
+                // Carry rider horizontally through tilemap
+                MoveEntityTilesOnly(ent, dx, 0.0f, tileSize);
+            }
+        }
+
+        // 2. Move Y and check riders/pushes
+        oldBox = plat.box;
+        plat.box.y += dy;
+
+        for (auto& ent : entities) {
+            bool wasRiding = ent.onGround &&
+                std::abs((ent.box.y + ent.box.h) - oldBox.y) <= eps &&
+                (ent.box.x + ent.box.w > oldBox.x) && (ent.box.x  0.0f) 
+                    ? (plat.box.y + plat.box.h) - ent.box.y 
+                    : plat.box.y - (ent.box.y + ent.box.h);
+                MoveEntityTilesOnly(ent, 0.0f, pushY, tileSize);
+
+                if (AABBOverlap(plat.box, ent.box)) {
+                    OnEntityCrushed(ent);
+                }
+            } else if (wasRiding && dy > 0.0f) {
+                // Only carry downward explicitly; upward movement already pushes via overlap
+                MoveEntityTilesOnly(ent, 0.0f, dy, tileSize);
+            }
+        }
+    }
 }
 ~~~~
 
 
-Important Implementation Details
------------------------------------------------
+Key Implementation Details
 
-* Coordinate Orientation: The contact flags (onGround, hitCeiling) assume +Y points up. If your engine uses screen coordinates where +Y points down, swap normal.y > 0.5f and normal.y < -0.5f.
-* Initial Overlap Recovery: SweepRayVsAABB intentionally rejects rays starting inside an expanded box (tEntry < 0.0f) so parallel sliding contacts don't re-trigger at t = 0. If an entity ever gets spawned or pushed inside a tile by a moving platform, run a quick discrete Minkowski push-out pass before calling MoveAndSlide.
+* Upward Y Movement: When a platform moves up (dy < 0), it naturally intersects the rider's feet and handles them via the push branch. Explicitly pulling the rider down when dy > 0 prevents the player from briefly losing onGround state and triggering fall animations every frame.
+* Include Platforms in Entity Solver: During step 3 (normal entity movement), treat moving platforms as solid AABBs alongside static tiles so jumping into the underside of a platform or walking into its side resolves cleanly.
+* Momentum Inheritance: When a player jumps off a moving platform, optionally add plat.vx (or a clamped fraction of it) to the player's horizontal velocity so jumps feel natural.
