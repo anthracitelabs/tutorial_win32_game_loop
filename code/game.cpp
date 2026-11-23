@@ -20,10 +20,14 @@ void InitGame(game_memory* GameMemory, float dt)
 	// For a single object
 	Hero = PushStruct(&GameState->WorldArena, hero_entity);
 	Hero->Health = 100;
-	Hero->pos.x = 20.0f;
-	Hero->pos.y = 20.0f;
-	Hero->pre_pos.x = 0.0f;
-	Hero->pre_pos.y = 0.0f;
+	Hero->pos.x = 3.0f;
+	Hero->pos.y = 3.0f;
+	Hero->box.x = Hero->pos.x;
+	Hero->box.y = Hero->pos.y;
+	Hero->box.halfW = 1.0;
+	Hero->box.halfH = 1.0;
+	Hero->pre_pos.x = Hero->pos.x;
+	Hero->pre_pos.y = Hero->pos.y;
 	Hero->velocity.x = 10.0f;
 	Hero->velocity.y = 10.0f;
 	
@@ -64,12 +68,12 @@ void GameFrame(game_memory* Memory, game_input* Input)
 				
 				if(Controller->MoveUp.EndedDown)
 				{
-					move_dir.y = 1.0f;
+					move_dir.y = -1.0f;
 				}
 
 				if(Controller->MoveDown.EndedDown)
 				{
-					move_dir.y = -1.0f;
+					move_dir.y = +1.0f;
 				}
 			}
 
@@ -88,7 +92,13 @@ void GameFrame(game_memory* Memory, game_input* Input)
 
 		Hero->pre_pos = Hero->pos;
 		
-		MoveEntity(Hero, (move_dir.x * Hero->velocity.x * GameState->dt), (move_dir.y * Hero->velocity.y * GameState->dt));
+		float dx = (move_dir.x * Hero->velocity.x * GameState->dt);
+		float dy = (move_dir.y * Hero->velocity.y * GameState->dt);
+		if(dx > 0.0f || dy > 0.0f || dx < 0.0f || dy < 0.0f)
+		{
+			MoveEntity(Hero, dx, dy);
+		}
+		
 		Hero->pos.x = Hero->box.x;
 		Hero->pos.y = Hero->box.y;;
 		
@@ -110,9 +120,6 @@ void build_render_frame(game_memory* Memory, float alpha)
 		CmdClear* clear = CMD_PUSH(&GameState->CommandBufferArena, CMD_CLEAR, CmdClear);
 		*clear = { 0.1f, 0.1f, 0.15f, 1.0f };
 		
-		float sx = 0.0f;
-		float sy = 0.0f;
-
 		for(int i = 0; i < ROW_TILE_COUNT; i++)
 		{
 			for(int j = 0; j < COLUMN_TILE_COUNT; j++)
@@ -121,11 +128,11 @@ void build_render_frame(game_memory* Memory, float alpha)
 				if(Tile == 1)
 				{	
 					CmdDrawRectangle* rect = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
-					*rect = { sx + j * TILE_WIDTH, sy + i * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, 0.1f, 0.1f, 0.1f, 1.0f };
+					*rect = { j * TILE_WIDTH, ((ROW_TILE_COUNT - 1) - i) * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, 0.1f, 0.2f, 0.1f, 1.0f };
 				}
 			}
 		}
-
+					
 		// interpolate Hero position
 		float x = Hero->pos.x * alpha + Hero->pre_pos.x * (1.0f - alpha);
 		float y = Hero->pos.y * alpha + Hero->pre_pos.y * (1.0f - alpha);
@@ -133,7 +140,7 @@ void build_render_frame(game_memory* Memory, float alpha)
 		//int roundedY = RoundReal32ToInt32(y);
 		
 		CmdDrawRectangle* rect1 = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
-		*rect1 = { x, y, 0.5f, 0.5f, 1.0f, 0.2f, 0.2f, 1.0f };
+		*rect1 = { x - Hero->box.halfW, (ROW_TILE_COUNT * TILE_WIDTH) - (y + Hero->box.halfH), Hero->box.halfW * 2.0f, Hero->box.halfH * 2.0f, 1.0f, 0.2f, 0.2f, 1.0f };
 	}
 }
 
