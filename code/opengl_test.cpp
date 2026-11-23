@@ -45,7 +45,7 @@ GLRenderer r;
 void gl_renderer_init() {
 	
 	// set up matrix
-	v3 camera = {8.0f, 12.0f, 30.0f};
+	v3 camera = {10.0f, 12.0f, 30.0f};
 
 	// Camera matrix
 	/*glm::mat4 View = glm::lookAt(
@@ -150,6 +150,18 @@ void gl_renderer_execute(game_memory* Memory) {
                 const CmdClear* cmd = (const CmdClear*)payload;
                 glClearColor(cmd->r, cmd->g, cmd->b, cmd->a);
                 glClear(GL_COLOR_BUFFER_BIT);
+                break;
+            }
+			case CMD_CAMERA: {
+                const CmdCamera* cmd = (const CmdCamera*)payload;
+				v3 eye = {cmd->x, cmd->y, cmd->z};	// Camera is at same as above in World Space
+				v3 center = {cmd->x, cmd->y, 0.0f};	// and looks at the origin
+				v3 up = {0.0f, 1.0f, 0.0f};		// Head is up (set to 0,-1,0 to look upside-down)
+				m4x4 V = LookAt(eye, center, up);
+				m4x4 M = Identity();
+				m4x4 P = Perspective(60.0f, (float) 800.0f / (float)600.0f, 0.1f, 100.0f);
+				myMVP = P * V * M;
+                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &myMVP.Elements[0]);
                 break;
             }
             case CMD_DRAW_RECTANGLE: {
