@@ -20,7 +20,7 @@ uint8 World[ROW_TILE_COUNT][COLUMN_TILE_COUNT] = {
 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 	{1, 0, 1, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 1, 0, 0, 0, 0, 0, 0, 1},
+	{1, 0, 1, 1, 0, 0, 0, 0, 0, 1},
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 };
 
@@ -30,13 +30,23 @@ uint8 GetTile(int r, int c)
 	return World[r][c];
 }
 
-int WorldToTileX(float worldX)
+float TileToWorldX(int col)
+{
+	return col * TILE_WIDTH;
+}
+
+float TileToWorldY(int row)
+{
+	return row * TILE_HEIGHT;
+}
+
+int WorldToTileCol(float worldX)
 {
 	int Result = FloorReal32ToInt32(worldX / TILE_WIDTH);
 	return Result;
 }
 
-int WorldToTileY(float worldY)
+int WorldToTileRow(float worldY)
 {
 	int Result = FloorReal32ToInt32(worldY / TILE_HEIGHT);
 	return Result;
@@ -54,12 +64,12 @@ float TileRight(int tx)
 
 float TileBottom(int ty)
 {
-	return (ty * TILE_HEIGHT);
+	return ((ty + 1) * TILE_HEIGHT);
 }
 
 float TileTop(int ty)
 {
-	return ((ty + 1) * TILE_HEIGHT);
+	return (ty * TILE_HEIGHT);
 }
 
 // Small epsilon keeps the AABB from falsely overlapping adjacent rows/columns
@@ -69,14 +79,14 @@ void ResolveX(hero_entity* e, float dx) {
     if (dx == 0.0f) return;
     e->box.x += dx;
 
-    int minTx = WorldToTileX(e->box.x - e->box.halfW);			//Ensure WorldToTile uses std::floor(coord / tileSize)
-    int maxTx = WorldToTileX(e->box.x + e->box.halfW);
-    int minTy = WorldToTileY(e->box.y - e->box.halfH + EPS);
-    int maxTy = WorldToTileY(e->box.y + e->box.halfH - EPS);
+    int minTx = WorldToTileCol(e->box.x - e->box.halfW);			//Ensure WorldToTile uses std::floor(coord / tileSize)
+    int maxTx = WorldToTileCol(e->box.x + e->box.halfW);
+    int minTy = WorldToTileRow(e->box.y - e->box.halfH + EPS);
+    int maxTy = WorldToTileRow(e->box.y + e->box.halfH - EPS);
 
     for (int ty = minTy; ty <= maxTy; ++ty) {
         for (int tx = minTx; tx <= maxTx; ++tx) {
-            if (GetTile(tx, ty) != 1) continue;
+            if (GetTile(ty, tx) != 1) continue;
 
             if (dx > 0.0f) { // Moving right -> snap to tile left edge
                 e->box.x = TileLeft(tx) - e->box.halfW;
@@ -94,14 +104,14 @@ void ResolveY(hero_entity* e, float dy) {
     float prevBottom = e->box.y + e->box.halfH; // Assuming +Y is down
     e->box.y += dy;
 
-    int minTx = WorldToTileX(e->box.x - e->box.halfW + EPS);
-    int maxTx = WorldToTileX(e->box.x + e->box.halfW - EPS);
-    int minTy = WorldToTileY(e->box.y - e->box.halfH);
-    int maxTy = WorldToTileY(e->box.y + e->box.halfH);
+    int minTx = WorldToTileCol(e->box.x - e->box.halfW + EPS);
+    int maxTx = WorldToTileCol(e->box.x + e->box.halfW - EPS);
+    int minTy = WorldToTileRow(e->box.y - e->box.halfH);
+    int maxTy = WorldToTileRow(e->box.y + e->box.halfH);
 
     for (int ty = minTy; ty <= maxTy; ++ty) {
         for (int tx = minTx; tx <= maxTx; ++tx) {
-            int type = GetTile(tx, ty);
+            int type = GetTile(ty, tx);
             if (type == 0) continue;
 
             // One-way platform: only collide when falling and previously above the top edge
