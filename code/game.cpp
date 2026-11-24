@@ -54,6 +54,9 @@ void GameFrame(game_memory* Memory, game_input* Input)
 		v2 move_dir = { 0.0f, 0.0f };
 		v2 camera_move_dir = { 0.0f, 0.0f };		
 		
+		mouse_pos.x = Input->Mouse.x;
+		mouse_pos.y = Input->Mouse.y;
+		
 		for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
 		{
 			game_controller_input *Controller = &Input->Controllers[ControllerIndex];
@@ -139,6 +142,9 @@ void GameFrame(game_memory* Memory, game_input* Input)
 		Camera->pos.x += (camera_move_dir.x * Hero->velocity.x * GameState->dt);
 		Camera->pos.y += (camera_move_dir.y * Hero->velocity.y * GameState->dt);
 		
+		mouse_pos.x *= 800.0f;
+		mouse_pos.y *= 600.0f;
+		//SDL_Log("Mouse: x=%.1f y=%.1f", mouse_pos.x, mouse_pos.y);
 		// write_sound_output_buffer();
 		
 		// write_render_buffer();
@@ -157,6 +163,19 @@ void build_render_frame(game_memory* Memory, float alpha)
 		CmdClear* clear = CMD_PUSH(&GameState->CommandBufferArena, CMD_CLEAR, CmdClear);
 		*clear = { 0.1f, 0.1f, 0.15f, 1.0f };
 		
+		////////////////////////////////////////
+		// SETUP CAMERA FIRST!!
+		////////////////////////////////////////
+		// interpolate Camera position
+		float camera_x = Camera->pos.x * alpha + Camera->pre_pos.x * (1.0f - alpha);
+		float camera_y = Camera->pos.y * alpha + Camera->pre_pos.y * (1.0f - alpha);
+		//send camera command
+		CmdCamera* cameraCmd = CMD_PUSH(&GameState->CommandBufferArena, CMD_CAMERA, CmdCamera);
+		*cameraCmd = {camera_x, camera_y, 30.0f};
+		
+		////////////////////////////////////////
+		// TILE MAP AND ENTITIES NEXT
+		////////////////////////////////////////
 		for(int i = 0; i < ROW_TILE_COUNT; i++)
 		{
 			for(int j = 0; j < COLUMN_TILE_COUNT; j++)
@@ -175,16 +194,16 @@ void build_render_frame(game_memory* Memory, float alpha)
 		float y = Hero->pos.y * alpha + Hero->pre_pos.y * (1.0f - alpha);
 		//int roundedX = RoundReal32ToInt32(x);
 		//int roundedY = RoundReal32ToInt32(y);
-		
+		//SDL_Log("Hero: x=%.1f y=%.1f", x, y);
 		CmdDrawRectangle* rect1 = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_RECTANGLE, CmdDrawRectangle);
 		*rect1 = { x - Hero->box.halfW, (ROW_TILE_COUNT * TILE_WIDTH) - (y + Hero->box.halfH), Hero->box.halfW * 2.0f, Hero->box.halfH * 2.0f, 1.0f, 0.2f, 0.2f, 1.0f };
 		
-		// interpolate Camera position
-		float camera_x = Camera->pos.x * alpha + Camera->pre_pos.x * (1.0f - alpha);
-		float camera_y = Camera->pos.y * alpha + Camera->pre_pos.y * (1.0f - alpha);
-		//send camera command
-		CmdCamera* cameraCmd = CMD_PUSH(&GameState->CommandBufferArena, CMD_CAMERA, CmdCamera);
-		*cameraCmd = {camera_x, camera_y, 30.0f};
+		////////////////////////////////////////
+		// FINALLY UI ELEMENTS
+		////////////////////////////////////////
+		// draw mouse
+		CmdDrawMouse* mouse_rect = CMD_PUSH(&GameState->CommandBufferArena, CMD_DRAW_MOUSE, CmdDrawMouse);
+		*mouse_rect = { mouse_pos.x, mouse_pos.y, 5.0f, 5.0f, 0.2f, 0.4f, 0.2f, 1.0f };
 	}
 }
 
