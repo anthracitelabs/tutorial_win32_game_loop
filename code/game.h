@@ -42,6 +42,7 @@ struct game_controller_input	// SINGLE GAME CONTROLLER
 struct game_input	// ALL CONTROLLERS STORED IN A STRUCT
 {
 	game_controller_input Controllers[5]; // 4 game controllers and a keyboard
+	v2 Mouse;
 };
 
 struct game_state
@@ -100,6 +101,7 @@ struct camera
 
 hero_entity *Hero;
 camera *Camera;
+v2 mouse_pos;
 
 uint32_t MaxEnemies = 256;
 enemy_entity *Enemies;
