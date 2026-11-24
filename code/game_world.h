@@ -9,7 +9,7 @@
 #define ROW_TILE_COUNT		10
 #define COLUMN_TILE_COUNT	10
 
-#define METER_TO_PIXELS	5.0f
+//#define METER_TO_PIXELS	5.0f
 
 uint8 World[ROW_TILE_COUNT][COLUMN_TILE_COUNT] = {
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
