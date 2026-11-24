@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 	// 3. Create window with SDL_WINDOW_OPENGL
 	SDL_Window* Window = SDL_CreateWindow(
 			"SDL3 + OpenGL",
-			800, 600,
+			640, 480,
 			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
 			);
 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	
-	SDL_SetWindowFullscreen(Window, true);
+	//SDL_SetWindowFullscreen(Window, true);
 	
 	// 4. Create and activate the OpenGL context
 	SDL_GLContext gl_context = SDL_GL_CreateContext(Window);
@@ -114,14 +114,14 @@ int main(int argc, char* argv[])
 	game_input Input[2] = {};
 	game_input* NewInput = &Input[0];
 	game_input* OldInput = &Input[1];
-
+	
 	std::chrono::steady_clock::time_point lastFpsUpdateTime = std::chrono::steady_clock::now();  // Last time metrics were displayed
 
 	while (GlobalRunning) 
 	{
 		std::chrono::steady_clock::time_point newTime = std::chrono::steady_clock::now();
 
-		input(OldInput, NewInput, GlobalRunning);
+		input(OldInput, NewInput, Window, GlobalRunning);
 
 		std::chrono::duration<float> frameTime = newTime - currentTime;
 
