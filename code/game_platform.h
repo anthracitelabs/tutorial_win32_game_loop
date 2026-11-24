@@ -61,6 +61,7 @@ void *PushSize_(memory_arena *Arena, size_t Size)
 typedef enum {
 	CMD_CLEAR = 1,
 	CMD_DRAW_RECTANGLE, 
+	CMD_DRAW_MOUSE, 
 	CMD_CAMERA
 } CmdType;
 
@@ -77,6 +78,11 @@ typedef struct {
     float x, y, w, h;
     float r, g, b, a;
 } CmdDrawRectangle;
+
+typedef struct {
+    float x, y, w, h;
+    float r, g, b, a;
+} CmdDrawMouse;
 
 typedef struct {
     float x, y, z;
