@@ -12,7 +12,7 @@ static void SDLProcessKeyboardMessage(game_button_state *NewState, bool IsDown)
     }
 }
 
-void SDLProcessPendingMessages(game_controller_input *KeyboardController, bool& GlobalRunning)
+void SDLProcessPendingMessages(game_controller_input *KeyboardController, v2* Mouse, SDL_Window* Window, bool& GlobalRunning)
 {
     SDL_Event Event;
 	while (SDL_PollEvent(&Event)) 
@@ -74,6 +74,32 @@ void SDLProcessPendingMessages(game_controller_input *KeyboardController, bool& 
 				}
 			} break;
 			
+			case SDL_EVENT_MOUSE_MOTION:
+			{
+				// event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel
+				int winW, winH, pixW, pixH;
+				SDL_GetWindowSize(Window, &winW, &winH);
+				SDL_GetWindowSizeInPixels(Window, &pixW, &pixH);
+
+				Mouse->x = (Event.motion.x * ((float)pixW / (float)winW)) / (float)pixW;
+				Mouse->y = (Event.motion.y * ((float)pixH / (float)winH)) / (float)pixH;
+				
+				//SDL_Log("Motion: x=%.1f y=%.1f dx=%.1f dy=%.1f pixW=%.1f pixHy=%.1f winW=%.1f winH=%.1f", Event.motion.x, Event.motion.y, Event.motion.xrel, Event.motion.yrel, (float)pixW, (float)pixH, (float)winW, (float)winH);
+				
+			} break;
+			
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			{
+				if (Event.button.button == SDL_BUTTON_LEFT) {
+					// Click at (event.button.x, event.button.y), count: event.button.clicks
+				}
+			} break;
+			
+			case SDL_EVENT_MOUSE_WHEEL:
+			{
+				// event.wheel.x, event.wheel.y
+			} break;
+			
 			case SDL_EVENT_WINDOW_RESIZED:
 			{
 				glViewport(0, 0, Event.window.data1, Event.window.data2);
@@ -87,10 +113,10 @@ void SDLProcessPendingMessages(game_controller_input *KeyboardController, bool& 
 	}
 }
 
-void input(game_input* OldInput, game_input* NewInput, bool& GlobalRunning)
+void input(game_input* OldInput, game_input* NewInput, SDL_Window* Window, bool& GlobalRunning)
 {
 	// ------------------------------------
-	// KEYBOARD INPUT PROCESSING SECTION
+	// KEYBOARD & MOUSE INPUT PROCESSING SECTION
 	// ------------------------------------
 	game_controller_input *OldKeyboardController = &OldInput->Controllers[0];
 	game_controller_input *NewKeyboardController = &NewInput->Controllers[0];
@@ -103,9 +129,9 @@ void input(game_input* OldInput, game_input* NewInput, bool& GlobalRunning)
 	{
 		NewKeyboardController->Buttons[ButtonIndex].EndedDown = OldKeyboardController->Buttons[ButtonIndex].EndedDown;
 	}
-	SDLProcessPendingMessages(NewKeyboardController, GlobalRunning);
+	SDLProcessPendingMessages(NewKeyboardController, &NewInput->Mouse, Window, GlobalRunning);
 	// ------------------------------------
-	// KEYBOARD INPUT PROCESSING SECTION
+	// KEYBOARD & MOUSE INPUT PROCESSING SECTION
 	// ------------------------------------
 }
 
