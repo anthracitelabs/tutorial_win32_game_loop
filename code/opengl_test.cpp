@@ -9,7 +9,6 @@ m4x4 myMVP;
 // Only during the initialisation
 GLuint MatrixID;
 
-
  typedef struct {
     GLuint shader_program;
     GLuint vao;
@@ -112,7 +111,7 @@ void gl_renderer_init() {
 
     glBindVertexArray(r.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 6, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 10000, NULL, GL_DYNAMIC_DRAW);
 
 	// offsetof is defined as a macro int stddef header: #define offsetof(type, member) ((size_t)&(((type *)0)->member))
 	
@@ -137,6 +136,8 @@ void gl_renderer_execute(game_memory* Memory) {
     const uint8_t* ptr = GameState->CommandBufferArena.Buffer;
     const uint8_t* end = GameState->CommandBufferArena.Buffer + GameState->CommandBufferArena.Offset;
 
+	size_t byte_count = 0;
+	size_t element_count = 0;
     while (ptr < end) {
         uintptr_t raw_addr = (uintptr_t)ptr;
         ptr = (const uint8_t*)((raw_addr + 7) & ~((uintptr_t)7));
@@ -173,7 +174,7 @@ void gl_renderer_execute(game_memory* Memory) {
 				
 				// Send our transformation to the currently bound shader, in the "MVP" uniform
 				// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-				glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &myMVP.Elements[0]);
+				//glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &myMVP.Elements[0]);
 	
                 // Build 2 triangles (6 vertices)
                 Vertex verts[6] = {
@@ -187,7 +188,72 @@ void gl_renderer_execute(game_memory* Memory) {
 
                 // Upload vertices and draw
                 glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+				byte_count += 36 * sizeof(float);
                 glDrawArrays(GL_TRIANGLES, 0, 6);
+				element_count += 6;
+                break;
+            }
+			case CMD_DRAW_MOUSE: {
+                const CmdDrawMouse* cmd = (const CmdDrawMouse*)payload;
+                float x0 = cmd->x;
+                float y0 = cmd->y;
+                float x1 = cmd->x + cmd->w;
+                float y1 = cmd->y + cmd->h;
+				
+				float screenWidth = 800;
+				float screenHeight = 600;
+				//glViewport(0, 0, 800, 600);
+				
+				// Screen / logical UI bounds (Top-Left Origin: (0,0) top-left, +X right, +Y down)
+				float L = 0.0f;                 // Left
+				float R = (float)screenWidth;   // Right (e.g., 800.0f)
+				float B = (float)screenHeight;  // Bottom (e.g., 600.0f)
+				float T = 0.0f;                 // Top
+				float N = -1.0f;                // Near plane
+				float F = 1.0f;                 // Far plane
+
+				// Column-major 4x4 matrix stored in a 1D 16-float array
+				float ortho[16] = {
+					// Column 0 (X basis)
+					2.0f / (R - L),
+					0.0f,
+					0.0f,
+					0.0f,
+
+					// Column 1 (Y basis)
+					0.0f,
+					2.0f / (T - B),
+					0.0f,
+					0.0f,
+
+					// Column 2 (Z basis)
+					0.0f,
+					0.0f,
+					-2.0f / (F - N),
+					0.0f,
+
+					// Column 3 (Translation)
+					-(R + L) / (R - L),
+					-(T + B) / (T - B),
+					-(F + N) / (F - N),
+					1.0f
+				};
+				
+				glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &ortho[0]);
+	
+                // Build 2 triangles (6 vertices)
+                Vertex verts[6] = {
+                    { x0, y0, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x1, y0, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x1, y1, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x0, y0, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x1, y1, cmd->r, cmd->g, cmd->b, cmd->a },
+                    { x0, y1, cmd->r, cmd->g, cmd->b, cmd->a }
+                };
+				
+                // Upload vertices and draw
+                glBufferSubData(GL_ARRAY_BUFFER, byte_count, sizeof(verts), verts);
+				glDrawArrays(GL_TRIANGLES, element_count, 6);
                 break;
             }
         }
