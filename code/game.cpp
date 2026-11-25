@@ -30,6 +30,7 @@ void InitGame(game_memory* GameMemory, float dt)
 	Hero->pre_pos.y = Hero->pos.y;
 	Hero->velocity.x = 10.0f;
 	Hero->velocity.y = 10.0f;
+	Hero->onGround = false;
 	
 	Camera = PushStruct(&GameState->WorldArena, camera);
 	Camera->pos.x = 0.0f;
@@ -69,49 +70,100 @@ void GameFrame(game_memory* Memory, game_input* Input)
 			else
 			{
 				// Digital movement tuning
-				if(Controller->MoveLeft.EndedDown)
+				if(IsDown(Controller->MoveLeft))
 				{
 					move_dir.x = -1.0f;
 				}
 
-				if(Controller->MoveRight.EndedDown)
+				if(IsDown(Controller->MoveRight))
 				{
 					move_dir.x = 1.0f;
 				}
 				
-				if(Controller->MoveUp.EndedDown)
+				/*if(IsDown(Controller->MoveUp))
 				{
 					move_dir.y = -1.0f;
 				}
 
-				if(Controller->MoveDown.EndedDown)
+				if(IsDown(Controller->MoveDown))
 				{
 					move_dir.y = +1.0f;
-				}
+				}*/
 				
-				if(Controller->Button_A.EndedDown)
+				if(IsDown(Controller->Button_A))
 				{
 					camera_move_dir.y = 1.0f;
 				}
-				if(Controller->Button_B.EndedDown)
+				if(IsDown(Controller->Button_B))
 				{
 					camera_move_dir.y = -1.0f;
 				}
-				if(Controller->Button_X.EndedDown)
+				if(IsDown(Controller->Button_X))
 				{
 					camera_move_dir.x = -1.0f;
 				}
-				if(Controller->Button_Y.EndedDown)
+				if(IsDown(Controller->Button_Y))
 				{
 					camera_move_dir.x = 1.0f;
 				}
 			}
 
-			if(Controller->Button_A.EndedDown)
+			// In your player controller / action interpretation code
+			if (WasPressed(Controller->MoveUp))
+			{
+				Hero->JumpBufferTimer = 0.1f;
+			}
+
+			// Variable jump height: cut upward velocity if released early while rising
+			/*if (WasReleased(Controller->MoveDown) && (Player->dP.y > 0.0f))
+			{
+				Player->dP.y *= 0.5f;
+			}*/
+			
+			if(WasPressed(Controller->RightShoulder)) // fire
 			{
 				// GameState->GreenOffset += 1;
 			}
+			
 		}
+		
+//////////////////////////
+// JUMP CODE
+//////////////////////////		
+		float Gravity = 15.0f;      // Units/sec^2 (assuming +Y is up)
+		float JumpVelocity = -10.5f;  // Initial upward burst
+
+		// Update timers
+		if (Hero->onGround)
+		{
+			Hero->CoyoteTimer = 0.08f; // Grace period after walking off a ledge
+		}
+		else
+		{
+			Hero->CoyoteTimer -= GameState->dt;
+		}
+
+		if (Hero->JumpBufferTimer > 0.0f)
+		{
+			Hero->JumpBufferTimer -= GameState->dt;
+		}
+
+		// Execute jump if buffered and recently grounded
+		if ((Hero->JumpBufferTimer > 0.0f) && (Hero->CoyoteTimer > 0.0f))
+		{
+			Hero->dP.y = JumpVelocity;
+			Hero->onGround = false;
+			Hero->JumpBufferTimer = 0.0f;
+			Hero->CoyoteTimer = 0.0f;
+		}
+
+		// Apply gravity and integrate position (equations of motion)
+		float ddP = Gravity;
+		Hero->dP.y += ddP * GameState->dt;
+		float dy = 0.5f * ddP * GameState->dt * GameState->dt + Hero->dP.y * GameState->dt;
+//////////////////////////
+// JUMP CODE
+//////////////////////////	
 		
 		float length_sq = (move_dir.x * move_dir.x) + (move_dir.y * move_dir.y);
 			if (length_sq > 1.0f) {
@@ -129,7 +181,11 @@ void GameFrame(game_memory* Memory, game_input* Input)
 
 		Hero->pre_pos = Hero->pos;
 		float dx = (move_dir.x * Hero->velocity.x * GameState->dt);
-		float dy = (move_dir.y * Hero->velocity.y * GameState->dt);
+		//float dy = (move_dir.y * Hero->velocity.y * GameState->dt);
+		
+		
+			
+		
 		if(dx > 0.0f || dy > 0.0f || dx < 0.0f || dy < 0.0f)
 		{
 			MoveEntity(Hero, dx, dy);
