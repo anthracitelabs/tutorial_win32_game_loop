@@ -15,11 +15,11 @@ uint8 World[ROW_TILE_COUNT][COLUMN_TILE_COUNT] = {
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	{1, 0, 0, 0, 1, 0, 0, 0, 0, 1},
 	{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
-	{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
+	{1, 1, 0, 0, 0, 0, 0, 1, 1, 1},
 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 1, 0, 0, 0, 0, 0, 0, 1},
+	{1, 0, 0, 0, 0, 1, 0, 0, 0, 1},
 	{1, 0, 1, 1, 0, 0, 0, 0, 0, 1},
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 };
@@ -122,7 +122,7 @@ void ResolveY(hero_entity* e, float dy) {
 
             if (dy > 0.0f) { // Falling -> land on tile top
                 e->box.y = TileTop(ty) - e->box.halfH;
-                //e.onGround = true;
+                e->onGround = true;
             } else {         // Jumping -> bonk tile bottom
                 e->box.y = TileBottom(ty) + e->box.halfH;
             }
