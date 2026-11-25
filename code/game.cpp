@@ -159,8 +159,8 @@ void GameFrame(game_memory* Memory, game_input* Input)
 
 		// Apply gravity and integrate position (equations of motion)
 		float ddP = Gravity;
-		Hero->dP.y += ddP * GameState->dt;
 		float dy = 0.5f * ddP * GameState->dt * GameState->dt + Hero->dP.y * GameState->dt;
+		Hero->dP.y += ddP * GameState->dt;
 //////////////////////////
 // JUMP CODE
 //////////////////////////	
