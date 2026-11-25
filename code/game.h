@@ -118,6 +118,11 @@ struct hero_entity
 	v2 pre_pos;
 	v2 velocity;
 	int Health;
+
+    v2 dP;              // Velocity
+    bool onGround;  // Set by your tilemap/collision solver
+    float JumpBufferTimer;
+    float CoyoteTimer;
 };
 
 struct enemy_entity
