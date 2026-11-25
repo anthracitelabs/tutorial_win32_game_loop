@@ -45,6 +45,41 @@ struct game_input	// ALL CONTROLLERS STORED IN A STRUCT
 	v2 Mouse;
 };
 
+/*
+ * (Rising Edge + Sub-Frame Taps): Returns true if the button was pressed at least once during the frame, even if the player released it before the frame ended.
+ * HalfTransitionCount > 1: Guarantees at least one full press occurred during the frame, even if the button ended up (EndedDown == false).
+ * HalfTransitionCount == 1 && State.EndedDown: Catches a standard press where the button started up and ended down.
+ */
+inline bool WasPressed(game_button_state State) {
+    bool Result = ((State.HalfTransitionCount > 1) ||
+                     ((State.HalfTransitionCount == 1) && (State.EndedDown)));
+    return Result;
+}
+
+/*
+ * (Falling Edge + Sub-Frame Releases): Returns true if the button was released at least once during the frame, even if it was pressed and released within that same frame.
+ */
+inline bool WasReleased(game_button_state State) {
+    bool Result = ((State.HalfTransitionCount > 1) ||
+                     ((State.HalfTransitionCount == 1) && (!State.EndedDown)));
+    return Result;
+}
+
+/*
+ * (Currently Held): Returns true if the button is physically held down at the end of the frame. Use this for continuous actions like movement, holding up a shield, or firing an automatic weapon.
+ */
+inline bool IsDown(game_button_state State) {
+    return State.EndedDown;
+}
+
+/*
+ * (Held Without Transition): Returns true if the button is down and did not change state this frame (i.e., it was already down from the previous frame). 
+ * Useful if you need to separate the initial press frame from sustained holding.
+ */
+inline bool IsHeld(game_button_state State) {
+    return (State.EndedDown && (State.HalfTransitionCount == 0));
+}
+
 struct game_state
 {
     // Memory sub-management
